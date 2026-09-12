@@ -325,6 +325,7 @@ npm run check:content -- --strict # 原始 HTML 也视为失败
 | `npm run smoke:save` | **写入路径**：在编辑器里改标题并 Save，断言改动真的落到 `.mdx` 文件，然后改回去 |
 | `npm run smoke:http` | **HTTP 状态码**：各路由 200；不存在的文章必须是 **404 而不是 500** |
 | `npm run check:routes` | **路由契约**：列表页/首页/sitemap/RSS 发出的每个文章 URL，都必须有对应的预渲染页面（离线，读构建产物，捕获子目录文章链接错位这类问题） |
+| `npm run check:runtime` | **运行时不依赖 CMS**：正文已烘焙进静态 HTML，客户端 chunk 里不含内容 API / API key / 内容查询；路由是静态而非动态 |
 | `npm run check:artifacts` | **产物校验**：生成的 client 不能指向 localhost、admin 不能是 dev 版标记 |
 | `npm run test:unit` | **单元测试**：图片主机白名单匹配（`.ts` 直接跑，无需构建） |
 | `npm run smoke:prod` | **生产模式全量验证**：起 `next start` 跑上面所有浏览器套件（历史上两个缺陷只在生产构建下暴露） |
