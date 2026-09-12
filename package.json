@@ -16,7 +16,7 @@
     "smoke:interaction": "node scripts/interaction-smoke.mjs",
     "smoke:draft": "node scripts/content-guards-smoke.mjs",
     "smoke:save": "node scripts/save-smoke.mjs",
-    "smoke": "npm run smoke:admin && npm run smoke:visual && npm run smoke:interaction"
+    "smoke": "npm run smoke:admin && npm run smoke:visual && npm run smoke:interaction && npm run smoke:save"
   },
   "dependencies": {
     "next": "16.3.5",
