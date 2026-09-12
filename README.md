@@ -27,11 +27,19 @@ npm run dev
 ### 构建
 
 ```bash
-npm run build     # tinacms build && next build   —— 生产构建（需要 TinaCloud 凭据）
+npm run build     # 生产构建（需要 TinaCloud 凭据，见 DEPLOYMENT.md）
 npm run build:local  # 无凭据的本地静态构建验证（见下文）
 npm run start     # 启动生产服务器
 npm run typecheck # tsc --noEmit
+npm run check:env # 只检查 TinaCMS 环境变量
 ```
+
+`npm run build` 会先跑 `scripts/check-env.mjs --strict`：因为 TinaCMS 的 admin 是**静态构建的 SPA**，
+`NEXT_PUBLIC_TINA_CLIENT_ID` 会被烘焙进 `public/admin/assets/*.js`。如果 Vercel 构建时缺这个变量
+（或还是 `.env.example` 里的占位符），线上编辑器会指向一个不存在的项目、只在浏览器里报错。
+这个前置检查会让构建**直接失败并说明怎么修**，而不是产出一个坏掉的 admin。
+
+完整的上线步骤见 [`DEPLOYMENT.md`](./DEPLOYMENT.md)。
 
 ---
 
@@ -184,6 +192,36 @@ npx next build
 
 ---
 
+### 缓存与内容新鲜度（重要）
+
+Tina 生成的 client 在 `--content=local` 构建模式下会带一个 `cacheDir`，而 Tina client 会
+**无限期**从该磁盘缓存返回查询结果。这会让 `export const revalidate = 60` 失效：重新验证会
+重新发起请求，但请求由磁盘缓存应答。因此 `src/lib/tina.ts` 是一个包装层，显式关闭了
+client 的磁盘缓存（`cache = null` / `cacheEnabled = false`）。该文件不会被 `tinacms build`
+覆盖，所以这个设置是稳定的。
+
+即便如此，**内容更新的可靠路径仍然是「保存 → GitHub 提交 → 重新部署」**：
+Tina 每次保存都会提交并触发 Vercel 构建，而每次构建都会生成新的 `cacheDir`。
+
+### 草稿语义
+
+`draft: true` 的文章：
+
+- 不出现在首页、`/posts` 列表、`sitemap.xml`、`rss.xml`
+- **也不会被预渲染**，访问 `/posts/<slug>` 返回 404
+  （`generateStaticParams` 与详情页共用同一套 publish 判定）
+
+`npm run smoke:draft` 用一个临时草稿文件验证这一点（会被 `--skip-cloud-checks` 构建覆盖到）。
+
+### 解析失败可见化
+
+如果某个 embed 的属性名拼错、属性类型与 `tina/config.ts` 声明的字段类型不一致，MDX 解析器会把
+**整篇正文**退化成一个 `invalid_markdown` 节点。渲染层为此注册了 `invalid_markdown` 渲染器：
+本地/开发模式下显示明确的错误提示与原始源码，生产模式下显示「内容暂时无法渲染」而不是把 MDX
+源码直接摊在页面上。未注册的组件名会退化成 `html` 节点，同样有可见的占位提示。
+
+---
+
 ## 编辑器与交互自动化冒烟测试
 
 三个 Playwright 脚本在真实浏览器（本机 Chrome）里验证 curl 无法验证的行为：
@@ -193,6 +231,7 @@ npx next build
 | `npm run smoke:admin` | 编辑器启动、连上本地内容 API、打开文档、自定义组件作为 embed 出现、**「插入组件」菜单里有它们** |
 | `npm run smoke:visual` | 站点页面 `?edit=true` 的**可视化编辑**：编辑器挂载、内容正常渲染、`[data-tina-field]` 点击跳转 handle 指向自定义区块 |
 | `npm run smoke:interaction` | 已发布页面上的**交互行为**：计数器加减、刷新后从 localStorage 恢复、标签页切换、提示框嵌套富文本 |
+| `npm run smoke:draft` | **草稿不外泄**：临时插入 `draft: true` 文章后跑一次构建，断言没有为它生成任何页面 |
 
 ```bash
 npm run dev                      # 终端 1：启动站点 + 本地内容 API

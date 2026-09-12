@@ -1,26 +1,40 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import PostClient from './post-client';
-import { client } from '@/tina/__generated__/client';
+import { client } from '@/lib/tina';
 
 type Params = { filename: string };
 
+/**
+ * Revalidate so an edit to a published post actually reaches the article page.
+ * Without this the page keeps its build-time HTML until the next deploy, while the list
+ * and home page (both revalidate=60) already show the new title — the classic
+ * "the list updated but the article didn't" confusion.
+ */
+export const revalidate = 60;
+
+/** Editor-authored URLs use the full path within the collection, so nested posts work. */
 function toRelativePath(filename: string) {
-  const decoded = decodeURIComponent(filename);
-  return decoded.endsWith('.mdx') || decoded.endsWith('.md') ? decoded : `${decoded}.mdx`;
+  return filename.endsWith('.mdx') || filename.endsWith('.md') ? filename : `${filename}.mdx`;
+}
+
+function isPublished(node: { draft: boolean | null } | null | undefined) {
+  return Boolean(node) && !node?.draft;
 }
 
 /**
- * Pre-render every post as static HTML at build time.
- * Next.js requires each param value to be a string, so posts live at
- * /posts/<slug> (a single dynamic segment).
+ * Pre-render every published post as static HTML at build time.
+ *
+ * Uses `_sys.relativePath` (not `filename`) so posts organised in subfolders such as
+ * `content/posts/2026/new-post.mdx` resolve, and drafts are excluded so `draft: true`
+ * really does unpublish a post instead of only hiding it from lists.
  */
 export async function generateStaticParams(): Promise<Params[]> {
   const { data } = await client.queries.postConnection();
   return (data?.postConnection?.edges ?? [])
-    .map((edge) => edge?.node?._sys)
-    .filter((sys): sys is NonNullable<typeof sys> => Boolean(sys))
-    .map((sys) => ({ filename: sys.filename }));
+    .map((edge) => edge?.node)
+    .filter((node): node is NonNullable<typeof node> => isPublished(node))
+    .map((node) => ({ filename: node._sys.relativePath.replace(/\.mdx?$/, '') }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
@@ -28,27 +42,33 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 
   try {
     const { data } = await client.queries.post({ relativePath: toRelativePath(filename) });
+    if (!isPublished(data?.post)) return { title: '文章未找到' };
     return {
       title: data.post.title,
       description: data.post.description ?? undefined,
     };
   } catch {
-    return { title: '文章未找到' };
+    // A transient API failure must not be reported as "not found".
+    return { title: '文章暂时无法加载' };
   }
 }
 
 export default async function PostPage({ params }: { params: Promise<Params> }) {
   const { filename } = await params;
-  const relativePath = toRelativePath(filename);
 
   let result: Awaited<ReturnType<typeof client.queries.post>>;
   try {
-    result = await client.queries.post({ relativePath });
-  } catch {
-    notFound();
+    result = await client.queries.post({ relativePath: toRelativePath(filename) });
+  } catch (error) {
+    // Distinguish "the query failed" (transient: 401/429/timeout) from "no such post".
+    // Turning a transient failure into notFound() would bake a permanent 404 for a post
+    // that exists, until the next deploy.
+    console.error(`Failed to load post "${filename}":`, error);
+    throw error;
   }
 
-  if (!result.data?.post) notFound();
+  // A missing record resolves with a null post; a draft must not be publicly reachable.
+  if (!isPublished(result.data?.post)) notFound();
 
   // Pass the generated query + variables alongside the data so the client page can
   // re-fetch and live-update inside the TinaCMS visual editor.

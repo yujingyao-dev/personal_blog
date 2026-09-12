@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { client } from '@/tina/__generated__/client';
+import { client } from '@/lib/tina';
 import { formatDate, toPostSummaries } from '@/lib/site';
 
 export const revalidate = 60;
@@ -32,14 +32,16 @@ export default async function PostsPage() {
                 ) : null}
                 {post.tags?.length ? (
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {post.tags.filter(Boolean).map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                      >
-                        {tag}
-                      </span>
-                    ))}
+                    {[...new Set(post.tags.filter((tag): tag is string => Boolean(tag)))].map(
+                      (tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                        >
+                          {tag}
+                        </span>
+                      )
+                    )}
                   </div>
                 ) : null}
               </article>

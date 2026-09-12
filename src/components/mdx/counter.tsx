@@ -20,13 +20,10 @@ export function Counter({ label, initialValue, step }: CounterProps) {
   const increment = typeof step === 'number' && step !== 0 ? step : 1;
 
   const storageKey = `mdx:counter:${label ?? 'counter'}:${initial}`;
-  const [count, setCount, bindRef] = usePersistentState<number>(storageKey, initial);
+  const [count, setCount] = usePersistentState<number>(storageKey, initial);
 
   return (
-    <div
-      ref={bindRef}
-      className="not-prose my-6 inline-flex items-center gap-3 rounded-lg border border-slate-200 p-2 dark:border-slate-700"
-    >
+    <div className="not-prose my-6 inline-flex items-center gap-3 rounded-lg border border-slate-200 p-2 dark:border-slate-700">
       <button
         type="button"
         onClick={() => setCount((value) => value - increment)}

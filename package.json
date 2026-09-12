@@ -4,13 +4,16 @@
   "private": true,
   "scripts": {
     "dev": "tinacms dev -c \"next dev\"",
-    "build": "tinacms build && next build",
-    "build:local": "tinacms build --local --skip-cloud-checks && next build",
+    "check:env": "node scripts/check-env.mjs",
+    "build": "node scripts/check-env.mjs --strict && tinacms build && next build",
+    "build:local": "node scripts/build-local.mjs",
+    "check:local-api": "node scripts/check-local-api.mjs",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "smoke:admin": "node scripts/admin-smoke.mjs",
     "smoke:visual": "node scripts/visual-edit-smoke.mjs",
     "smoke:interaction": "node scripts/interaction-smoke.mjs",
+    "smoke:draft": "node scripts/draft-smoke.mjs",
     "smoke": "npm run smoke:admin && npm run smoke:visual && npm run smoke:interaction"
   },
   "dependencies": {

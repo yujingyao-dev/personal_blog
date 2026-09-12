@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { client } from '@/tina/__generated__/client';
+import { client } from '@/lib/tina';
 import { formatDate, toPostSummaries } from '@/lib/site';
 
 export const revalidate = 60;

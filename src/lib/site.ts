@@ -11,11 +11,36 @@ export function siteUrl() {
   return raw.replace(/\/+$/, '');
 }
 
+/**
+ * Format an ISO date for display.
+ *
+ * `timeZone: 'UTC'` is required, not cosmetic: TinaCMS datetime fields are stored as UTC
+ * midnight (e.g. 2026-01-15T00:00:00.000Z), and this helper is called from a client
+ * component. Without a fixed timezone the server (UTC) prerenders "2026年1月15日" while a
+ * visitor in UTC-5 hydrates "2026年1月14日" — a React hydration mismatch, plus an article
+ * date that disagrees with the server-rendered list.
+ */
 export function formatDate(value?: string | null) {
-  if (!value) return '';
+  const date = parseDate(value);
+  if (!date) return '';
+  return date.toLocaleDateString('zh-CN', {
+    timeZone: 'UTC',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+/** Parse a date string, returning null instead of an Invalid Date. */
+export function parseDate(value?: string | null): Date | null {
+  if (!value) return null;
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/** Milliseconds since epoch for sorting; invalid/missing dates sort last. */
+function sortKey(value?: string | null): number {
+  return parseDate(value)?.getTime() ?? Number.NEGATIVE_INFINITY;
 }
 
 export type PostSummary = {
@@ -24,14 +49,35 @@ export type PostSummary = {
   description: string | null;
   tags: (string | null)[] | null;
   filename: string;
+  /** Path within the collection, e.g. "hello-tinacms.mdx" or "2026/nested.mdx". */
+  relativePath: string;
 };
 
+type PostEdge = {
+  node: {
+    title: string;
+    date: string;
+    description: string | null;
+    tags: (string | null)[] | null;
+    draft: boolean | null;
+    _sys: { filename: string; relativePath: string };
+  } | null;
+};
+
+/**
+ * The single funnel for turning post edges into displayable summaries: drops null edges,
+ * drops drafts, and sorts newest-first.
+ *
+ * Draft handling lives here on purpose — `generateStaticParams` must apply the same rule
+ * (see `isPublished`), otherwise a draft would be absent from lists/sitemap but still
+ * prerendered and publicly reachable at its own URL.
+ */
 export function toPostSummaries(
-  edges: ({ node: { title: string; date: string; description: string | null; tags: (string | null)[] | null; draft: boolean | null; _sys: { filename: string } } | null } | null)[] | null | undefined
+  edges: (PostEdge | null)[] | null | undefined
 ): PostSummary[] {
   return (edges ?? [])
     .map((edge) => edge?.node)
-    .filter((node): node is NonNullable<typeof node> => Boolean(node))
+    .filter((node): node is NonNullable<PostEdge['node']> => Boolean(node))
     .filter((node) => !node.draft)
     .map((node) => ({
       title: node.title,
@@ -39,6 +85,7 @@ export function toPostSummaries(
       description: node.description,
       tags: node.tags,
       filename: node._sys.filename,
+      relativePath: node._sys.relativePath,
     }))
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    .sort((a, b) => sortKey(b.date) - sortKey(a.date));
 }

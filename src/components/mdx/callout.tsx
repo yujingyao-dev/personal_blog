@@ -11,10 +11,14 @@ import { TinaMarkdown } from 'tinacms/dist/rich-text';
 export type { CalloutType };
 
 export interface CalloutProps {
-  type?: CalloutType | null;
+  type?: string | null;
   title?: string | null;
   body?: string | null;
   children?: TinaMarkdownContent | TinaMarkdownContent[] | null;
+}
+
+function normalizeType(value?: string | null): CalloutType {
+  return value && value in calloutStyles ? (value as CalloutType) : 'info';
 }
 
 /**
@@ -22,10 +26,12 @@ export interface CalloutProps {
  * rendered with a second <TinaMarkdown> call.
  */
 export function Callout({ type, title, body, children }: CalloutProps) {
-  const variant: CalloutType = type ?? 'info';
-  const hasChildren = Array.isArray(children)
-    ? children.length > 0
-    : Boolean(children && children.type);
+  const variant = normalizeType(type);
+
+  // The parser always attaches `children` as `{ type: 'root', children: [] }`, even for
+  // self-closing embeds, so checking for the node alone would render an empty block.
+  const childNodes = Array.isArray(children) ? children : children?.children;
+  const hasChildren = Array.isArray(childNodes) ? childNodes.length > 0 : Boolean(childNodes);
 
   return (
     <aside className={`not-prose my-6 rounded-lg border-l-4 p-4 ${calloutStyles[variant]}`}>

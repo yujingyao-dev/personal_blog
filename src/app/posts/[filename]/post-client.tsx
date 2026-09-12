@@ -3,18 +3,16 @@
 import Link from 'next/link';
 import { useTina } from 'tinacms/dist/react';
 import Body from '@/components/tina-markdown';
+import { formatDate } from '@/lib/site';
 import type { PostQuery, PostQueryVariables } from '@/tina/__generated__/types';
-
-function formatDate(value?: string | null) {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
-}
 
 /**
  * Client page: `useTina` swaps the sidebar data in while editing, so changes made in the
  * TinaCMS visual editor appear here immediately. In production it just renders `data`.
+ *
+ * Note: `formatDate` is imported from `@/lib/site` rather than reimplemented here — the
+ * shared version pins the timezone to UTC, which this component needs because it runs on
+ * the client (see the doc comment on `formatDate`).
  */
 export default function PostClient(props: {
   query: string;

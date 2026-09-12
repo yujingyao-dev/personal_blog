@@ -1,5 +1,5 @@
-import { client } from '@/tina/__generated__/client';
-import { siteUrl, toPostSummaries } from '@/lib/site';
+import { client } from '@/lib/tina';
+import { parseDate, siteUrl, toPostSummaries } from '@/lib/site';
 
 export const revalidate = 60;
 
@@ -19,13 +19,13 @@ export async function GET() {
 
   const items = posts
     .map((post) => {
-      const url = `${base}/posts/${post.filename}`;
+      const url = `${base}/posts/${post.relativePath.replace(/\.mdx?$/, '')}`;
+      const published = parseDate(post.date);
       return `    <item>
       <title>${escapeXml(post.title)}</title>
       <link>${url}</link>
       <guid isPermaLink="true">${url}</guid>
-      <pubDate>${new Date(post.date).toUTCString()}</pubDate>
-${post.description ? `      <description>${escapeXml(post.description)}</description>\n` : ''}    </item>`;
+${published ? `      <pubDate>${published.toUTCString()}</pubDate>\n` : ''}${post.description ? `      <description>${escapeXml(post.description)}</description>\n` : ''}    </item>`;
     })
     .join('\n');
 
