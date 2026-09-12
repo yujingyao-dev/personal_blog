@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import PostClient from './post-client';
 import { client } from '@/lib/tina';
+import { parseDate } from '@/lib/site';
 
 /**
  * Catch-all (`[...filename]`) rather than a single segment (`[filename]`), so posts in
@@ -10,6 +11,9 @@ import { client } from '@/lib/tina';
  * (`/posts/2026%2Fnested-post`), which never matches the URL the lists and sitemap emit.
  */
 type Params = { filename: string[] };
+
+/** Kept in sync with the root layout; a page-level openGraph replaces it rather than merging. */
+const SITE_NAME = '我的博客';
 
 /**
  * Revalidate so an edit to a published post actually reaches the article page.
@@ -48,15 +52,41 @@ export async function generateStaticParams(): Promise<Params[]> {
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { filename } = await params;
+  const relativePath = toRelativePath(filename);
 
   try {
     // The client uses errorPolicy: 'include' (see src/lib/tina.ts), so a missing document
     // resolves to a null post instead of rejecting.
-    const { data } = await client.queries.post({ relativePath: toRelativePath(filename) });
+    const { data } = await client.queries.post({ relativePath });
     if (!isPublished(data?.post)) return { title: '文章未找到' };
+
+    const post = data.post;
+    const description = post.description ?? undefined;
+
     return {
-      title: data.post.title,
-      description: data.post.description ?? undefined,
+      title: post.title,
+      description,
+      // Without openGraph the shared link has no title/description/image at all, and without
+      // the image a share renders as a bare URL. The canonical URL is resolved against the
+      // site origin because a relative og:url is not usable by most crawlers.
+      alternates: { canonical: `/posts/${filename.join('/')}` },
+      openGraph: {
+        type: 'article',
+        // Repeated from the root layout on purpose: a page-level `openGraph` object replaces the
+        // layout's rather than deep-merging, so omitting siteName here drops og:site_name.
+        siteName: SITE_NAME,
+        title: post.title,
+        description,
+        url: `/posts/${filename.join('/')}`,
+        publishedTime: parseDate(post.date)?.toISOString(),
+        images: post.cover ? [{ url: post.cover, alt: post.title }] : undefined,
+      },
+      twitter: {
+        card: post.cover ? 'summary_large_image' : 'summary',
+        title: post.title,
+        description,
+        images: post.cover ? [post.cover] : undefined,
+      },
     };
   } catch {
     // A transport-level failure (offline, DNS) must not be reported as "not found".

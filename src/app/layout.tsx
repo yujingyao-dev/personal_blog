@@ -1,17 +1,37 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { metadataBaseUrl } from '@/lib/site-url';
 import './globals.css';
 
+const SITE_NAME = '我的博客';
+const SITE_DESCRIPTION = '一个用 TinaCMS + Next.js 构建的静态个人博客';
+
 export const metadata: Metadata = {
+  // metadataBase is what turns the relative canonical/Open Graph URLs into absolute ones.
+  // Without it Next emits href="/posts/x", which crawlers and social platforms cannot use —
+  // a shared link then has no usable URL or image.
+  metadataBase: metadataBaseUrl(),
   title: {
-    default: '我的博客',
-    template: '%s | 我的博客',
+    default: SITE_NAME,
+    template: `%s | ${SITE_NAME}`,
   },
-  description: '一个用 TinaCMS + Next.js 构建的静态个人博客',
+  description: SITE_DESCRIPTION,
   alternates: {
     types: {
       'application/rss+xml': '/rss.xml',
     },
+  },
+  openGraph: {
+    type: 'website',
+    siteName: SITE_NAME,
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    locale: 'zh_CN',
+  },
+  twitter: {
+    card: 'summary',
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
   },
 };
 

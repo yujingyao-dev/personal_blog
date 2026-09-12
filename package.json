@@ -28,6 +28,7 @@
     "smoke": "npm run smoke:http && npm run smoke:admin && npm run smoke:visual && npm run smoke:interaction && npm run smoke:save"
   },
   "dependencies": {
+    "@tinacms/mdx": "2.2.2",
     "next": "16.3.5",
     "react": "19.2.0",
     "react-dom": "19.2.0",

@@ -126,8 +126,10 @@ const components = {
     );
   },
 
-  // External links open in a new tab; internal links stay in the same tab. URLs are
-  // sanitized because overriding `a` replaces TinaMarkdown's built-in sanitization.
+  // External links open in a new tab; internal links stay in the same tab.
+  // Overriding `a` replaces TinaMarkdown's built-in sanitization, so sanitizeUrl delegates to
+  // Tina's own sanitizer (see src/components/mdx/sanitize-url.ts). A URL it rejects renders as
+  // plain text rather than an empty <a href="">.
   a: (props: { url?: string; children?: React.ReactNode }) => {
     const href = sanitizeUrl(props.url);
     if (!href) return <span>{props.children}</span>;

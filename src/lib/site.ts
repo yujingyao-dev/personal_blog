@@ -1,9 +1,19 @@
-/** Absolute site origin, used by sitemap/robots/RSS. */
+/**
+ * Absolute site origin, used by sitemap/robots/RSS and by `metadataBase` in the root layout.
+ *
+ * Every variable consulted is `NEXT_PUBLIC_`-prefixed on purpose: the root layout is a client
+ * component, and Next only inlines `NEXT_PUBLIC_*` names into the browser bundle. A server-only
+ * name would be `undefined` on the client, so the server and client would resolve different
+ * origins — the same class of bug as the timezone hydration mismatch fixed in `formatDate`.
+ *
+ * `NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL` is populated by `next.config.ts`, which re-exports
+ * Vercel's non-public `VERCEL_PROJECT_PRODUCTION_URL` under a public name.
+ */
 export function siteUrl() {
   const raw =
     process.env.NEXT_PUBLIC_SITE_URL ||
-    (process.env.VERCEL_PROJECT_PRODUCTION_URL
-      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    (process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}`
       : undefined) ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ||
     'http://localhost:3000';

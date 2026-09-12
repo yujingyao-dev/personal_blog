@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { isAllowedImageHost } from '@/lib/image-hosts';
+import { isUrlAllowedForOptimizer } from '@/lib/image-hosts';
 
 export interface FigureProps {
   /** `image` field in the schema: an absolute path or a remote URL. */
@@ -17,15 +17,17 @@ export interface FigureProps {
 /**
  * A captioned image embed.
  *
- * Remote images that are not covered by `images.remotePatterns` cannot go through the
- * optimizer — it answers `400 "url" parameter is not allowed`, so the page renders fine while
- * the image is silently broken. Since the URL comes from the editor, that is easy to hit: any
- * remote host other than the configured ones. Such images fall back to a plain <img> (the
- * browser fetches the original), and a warning is logged in development telling the author to
- * add the host to `ALLOWED_IMAGE_HOSTS` in `next.config.ts`.
+ * A remote image outside `images.remotePatterns` cannot go through the optimizer — it answers
+ * `400 "url" parameter is not allowed`, so the page renders 200 while the image is silently
+ * broken. The URL comes from the editor, so this is easy to hit. Such images are served as-is
+ * with a plain <img> (the browser fetches the original) and a development warning names the host.
  *
- * The caption is rendered in both paths on purpose: if the fallback `<img>` is broken too, the
- * caption makes the mistake visible instead of leaving an empty gap.
+ * The decision is made synchronously during render, from the same allowlist that generates
+ * `remotePatterns` in next.config.ts. That keeps the server and client markup identical (no
+ * hydration mismatch) and avoids emitting an optimizer URL the optimizer would reject.
+ *
+ * The caption renders in both paths on purpose: if the fallback <img> is broken too, the mistake
+ * stays visible instead of leaving an empty gap.
  */
 export function Figure({ src, alt, caption, width, height, priority }: FigureProps) {
   if (!src) return null;
@@ -36,25 +38,23 @@ export function Figure({ src, alt, caption, width, height, priority }: FigurePro
       : { width: 1200, height: 675 };
 
   const altText = alt ?? caption ?? '';
-  const isRemote = /^https?:\/\//.test(src);
 
-  let hostname: string | null = null;
+  // Local files in public/ never need the optimizer.
+  const isRemote = /^https?:\/\//.test(src);
+  let optimizerAllowed = false;
   if (isRemote) {
     try {
-      hostname = new URL(src).hostname;
+      optimizerAllowed = isUrlAllowedForOptimizer(new URL(src));
     } catch {
-      hostname = null;
+      optimizerAllowed = false;
     }
-  }
-
-  const optimizerAllowed = hostname !== null && isAllowedImageHost(hostname);
-
-  if (isRemote && !optimizerAllowed && process.env.NODE_ENV !== 'production') {
-    console.warn(
-      `[Figure] Remote image host "${hostname}" is not in ALLOWED_IMAGE_HOSTS ` +
-        `(next.config.ts). Rendering it without the Next.js image optimizer. ` +
-        `Add the host there to enable optimization.`
-    );
+    if (!optimizerAllowed && process.env.NODE_ENV !== 'production') {
+      console.warn(
+        `[Figure] Remote image host is not matched by images.remotePatterns, so the Next.js ` +
+          `image optimizer would reject it. Rendering the original URL instead. Add the host to ` +
+          `ALLOWED_IMAGE_HOSTS in src/lib/image-hosts.ts to enable optimization. src="${src}"`
+      );
+    }
   }
 
   return (
@@ -70,7 +70,6 @@ export function Figure({ src, alt, caption, width, height, priority }: FigurePro
           className="h-auto w-full rounded-lg"
         />
       ) : (
-        // Local files in public/ and non-allowlisted remote URLs are served as-is.
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={src}

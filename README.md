@@ -150,8 +150,25 @@ URL，**页面仍会返回 200，但图片是坏的** —— 优化器会返回
 export const ALLOWED_IMAGE_HOSTS = ['assets.tina.io', '**.vercel.app', 'i.example.com'];
 ```
 
-`npm run test:unit` 覆盖主机匹配逻辑（含 `**.` 通配、大小写、以及 `assets.tina.io.evil.com`
-这类后缀欺骗必须不匹配）。
+匹配规则与 Next 的 `remotePatterns` **逐字节对齐**（Next 用 picomatch 编译 hostname 作为 glob）。
+几个容易搞错的点，已由 `npm run test:unit` 锁定：
+
+- `**.vercel.app` **会**匹配 `my-blog.vercel.app`、`a.b.vercel.app`，**不会**匹配裸域名 `vercel.app`
+- `assets.tina.io` 不隐含其子域；`assets.tina.io.evil.com` 这类后缀欺骗必须不匹配
+- 协议严格相等（pattern 写 `https` 时 `http://` 会被拒）
+
+### SEO / 分享卡片
+
+`src/app/layout.tsx` 设置 `metadataBase`，文章页输出 **绝对 URL** 的 canonical、`og:url`、
+`og:image`、`twitter:image`。没有 `metadataBase` 时这些是相对路径（`/posts/x`），crawler 与社交平台
+无法使用，分享出去只是一条裸链接。文章有 `cover` 字段时自动作为 `og:image` 并切换为
+`summary_large_image`。
+
+> 注意：页面级 `openGraph` 会**整体替换**布局里的，不会深合并，所以文章页里显式重复了 `siteName`。
+
+站点绝对地址来自 `NEXT_PUBLIC_SITE_URL`（自定义域名必须显式设置）。为了让客户端（`layout.tsx`）
+与服务端解析到同一个 origin，所有读取的环境变量都是 `NEXT_PUBLIC_` 前缀的；
+Vercel 的非公开变量 `VERCEL_PROJECT_PRODUCTION_URL` 由 `next.config.ts` 转成公开名。
 
 > `VideoEmbed` **不接受任意 iframe 地址** —— 它只从校验过的视频 ID 拼接播放器 URL，
 > 这样即使有人在 MDX 里手写标签也无法注入任意 iframe。

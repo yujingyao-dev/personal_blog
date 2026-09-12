@@ -1,25 +1,30 @@
 /**
- * Allowed URL schemes for links authored in rich text.
+ * URL sanitization for the custom anchor renderer.
  *
- * The built-in TinaMarkdown anchor renderer sanitizes URLs; a custom `a` override replaces
- * that behaviour, so the same allowlist is applied here to keep schemes like `data:` out
- * of the DOM.
+ * Overriding `a` in the `components` map replaces TinaMarkdown's built-in sanitization, so this
+ * has to reproduce it. It delegates to Tina's own sanitizer
+ * (`@tinacms/mdx/sanitize-url`, the module `tinacms`'s rich-text renderer itself uses) rather
+ * than keeping a second scheme allowlist that could drift from the official one.
+ *
+ * The built-in list is `http`, `https`, `mailto`, `tel`, `xref`. Note `xref`, which is a CMS
+ * cross-reference scheme — a hand-written allowlist without it silently turns valid internal
+ * references into plain text, which is exactly the kind of drift this avoids.
  */
-const SAFE_SCHEMES = ['http:', 'https:', 'mailto:', 'tel:'];
+import { sanitizeUrl as tinaSanitizeUrl } from '@tinacms/mdx/sanitize-url';
 
+/**
+ * Returns a safe href, or undefined when the URL must not become a link (for example a
+ * `javascript:` payload, which Tina's sanitizer rejects).
+ *
+ * Tina's sanitizer returns an empty string for disallowed schemes; the caller renders plain
+ * text in that case instead of emitting `<a href="">`.
+ */
 export function sanitizeUrl(url?: string | null): string | undefined {
   if (!url) return undefined;
 
   const trimmed = url.trim();
   if (!trimmed) return undefined;
 
-  // Relative links, anchors and protocol-relative URLs are fine.
-  if (/^[/#?]/.test(trimmed) || trimmed.startsWith('//')) return trimmed;
-
-  try {
-    const parsed = new URL(trimmed, 'https://example.invalid');
-    return SAFE_SCHEMES.includes(parsed.protocol) ? trimmed : undefined;
-  } catch {
-    return undefined;
-  }
+  const sanitized = tinaSanitizeUrl(trimmed);
+  return sanitized ? sanitized : undefined;
 }
