@@ -215,6 +215,17 @@ Tina 生成的 client 在 `--content=local` 构建模式下会带一个 `cacheDi
 client 的磁盘缓存（`cache = null` / `cacheEnabled = false`）。该文件不会被 `tinacms build`
 覆盖，所以这个设置是稳定的。
 
+### 为什么 client 改成 `errorPolicy: 'include'`
+
+默认的 `'throw'` 会在**任何** GraphQL 错误上 reject —— 包括「文章不存在」时返回的
+`Unable to find record` 错误。结果是无法区分「文档不存在」和「请求失败」，`notFound()`
+永远走不到，**任何不存在的文章 URL 都会返回 500**。
+
+`src/lib/tina.ts` 因此把 client 设为 `errorPolicy: 'include'`：文档不存在时
+`data.post === null`（页面里调 `notFound()` 返回 404），而网络故障仍然会 reject 并抛出。
+代价是 schema 层面的错误会表现为空结果而不是崩溃，所以各页面都显式处理「没有数据」的情况。
+`npm run smoke:http` 专门守住这个行为。
+
 即便如此，**内容更新的可靠路径仍然是「保存 → GitHub 提交 → 重新部署」**：
 Tina 每次保存都会提交并触发 Vercel 构建，而每次构建都会生成新的 `cacheDir`。
 
@@ -292,6 +303,7 @@ npm run check:content -- --strict # 原始 HTML 也视为失败
 | `npm run smoke:interaction` | 已发布页面上的**交互行为**：计数器加减、刷新后从 localStorage 恢复、标签页切换、提示框嵌套富文本 |
 | `npm run smoke:draft` | **内容门禁 + 草稿不外泄**：构造坏 MDX 断言校验器失败；构造 `draft: true` 断言不为它生成页面 |
 | `npm run smoke:save` | **写入路径**：在编辑器里改标题并 Save，断言改动真的落到 `.mdx` 文件，然后改回去 |
+| `npm run smoke:http` | **HTTP 状态码**：各路由 200；不存在的文章必须是 **404 而不是 500** |
 
 ```bash
 npm run dev                      # 终端 1：必须用这个（见下方注意事项）

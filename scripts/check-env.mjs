@@ -49,7 +49,9 @@ const warnings = [];
 
 const clientId = (process.env.NEXT_PUBLIC_TINA_CLIENT_ID ?? '').trim();
 const token = (process.env.TINA_TOKEN ?? '').trim();
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').trim();
 const isVercel = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV);
+const isProductionBuild = isVercel || process.env.NODE_ENV === 'production';
 
 if (!clientId) {
   errors.push('NEXT_PUBLIC_TINA_CLIENT_ID is not set — the editor will not know which project to load.');
@@ -73,7 +75,22 @@ if (!process.env.NEXT_PUBLIC_TINA_BRANCH && !process.env.VERCEL_GIT_COMMIT_REF &
   warnings.push('No branch resolved; tina/config.ts will fall back to "main".');
 }
 
-if (!process.env.NEXT_PUBLIC_SITE_URL && !process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+// A localhost site URL is baked into sitemap.xml / robots.txt / rss.xml at build time.
+// `.env` is committed, and a hosting provider's environment variables do NOT override it,
+// so this silently ships a sitemap pointing at http://localhost:3000.
+const localhostSiteUrl = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?/i.test(siteUrl);
+
+if (localhostSiteUrl && isProductionBuild) {
+  const message =
+    `NEXT_PUBLIC_SITE_URL is set to a localhost URL (${siteUrl}) for a production build. ` +
+    'sitemap.xml / robots.txt / rss.xml would be generated with localhost links.\n' +
+    '     Fix: set NEXT_PUBLIC_SITE_URL to the real origin in the hosting provider, and remove\n' +
+    '     it from `.env` (or leave it empty) — a value in `.env` wins over the provider settings.';
+  if (isVercel) errors.push(message);
+  else warnings.push(message);
+} else if (localhostSiteUrl) {
+  warnings.push(`NEXT_PUBLIC_SITE_URL is a localhost URL (${siteUrl}) — fine for local development.`);
+} else if (!siteUrl && !process.env.VERCEL_PROJECT_PRODUCTION_URL) {
   warnings.push(
     'NEXT_PUBLIC_SITE_URL is unset and VERCEL_PROJECT_PRODUCTION_URL is unavailable — ' +
       'sitemap.xml / robots.txt / rss.xml will contain http://localhost:3000.'

@@ -41,6 +41,8 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   const { filename } = await params;
 
   try {
+    // The client uses errorPolicy: 'include' (see src/lib/tina.ts), so a missing document
+    // resolves to a null post instead of rejecting.
     const { data } = await client.queries.post({ relativePath: toRelativePath(filename) });
     if (!isPublished(data?.post)) return { title: '文章未找到' };
     return {
@@ -48,7 +50,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
       description: data.post.description ?? undefined,
     };
   } catch {
-    // A transient API failure must not be reported as "not found".
+    // A transport-level failure (offline, DNS) must not be reported as "not found".
     return { title: '文章暂时无法加载' };
   }
 }
@@ -60,14 +62,14 @@ export default async function PostPage({ params }: { params: Promise<Params> }) 
   try {
     result = await client.queries.post({ relativePath: toRelativePath(filename) });
   } catch (error) {
-    // Distinguish "the query failed" (transient: 401/429/timeout) from "no such post".
-    // Turning a transient failure into notFound() would bake a permanent 404 for a post
-    // that exists, until the next deploy.
+    // Only transport failures land here. They must surface as errors rather than being
+    // baked in as a permanent 404 for a post that exists.
     console.error(`Failed to load post "${filename}":`, error);
     throw error;
   }
 
-  // A missing record resolves with a null post; a draft must not be publicly reachable.
+  // A missing record resolves with a null post (errorPolicy: 'include'); a draft must not be
+  // publicly reachable.
   if (!isPublished(result.data?.post)) notFound();
 
   // Pass the generated query + variables alongside the data so the client page can

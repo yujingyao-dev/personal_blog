@@ -8,6 +8,8 @@ export const revalidate = 60;
 const ABOUT_PATH = 'about.mdx';
 
 async function loadAbout() {
+  // The client uses errorPolicy: 'include' (see src/lib/tina.ts), so a missing page resolves
+  // to null and the caller can notFound() instead of the request rejecting.
   const { data } = await client.queries.page({ relativePath: ABOUT_PATH });
   return data?.page ?? null;
 }
