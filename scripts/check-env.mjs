@@ -14,7 +14,7 @@
  * `.env` is loaded because TinaCMS only reads plain `.env` (not `.env.local`/`.env.development`),
  * and because `TINA_TOKEN` from a non-public file must still reach `tinacms build`.
  */
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, statSync } from 'node:fs';
 
 const strict = process.argv.includes('--strict');
 
@@ -73,6 +73,34 @@ if (!token) {
 
 if (!process.env.NEXT_PUBLIC_TINA_BRANCH && !process.env.VERCEL_GIT_COMMIT_REF && !process.env.HEAD) {
   warnings.push('No branch resolved; tina/config.ts will fall back to "main".');
+}
+
+// `tina-lock.json` is regenerated ONLY by `tinacms dev` (the build command never writes it).
+// A lock file older than the schema means TinaCloud may be indexing a different schema than
+// the one being deployed, which fails the cloud build with a local/remote schema mismatch.
+//
+// This is a WARNING, not an error: mtime cannot prove drift. Editing a comment in
+// tina/config.ts bumps its mtime while the lock stays byte-identical, so treating a newer
+// config as a hard failure would block perfectly valid deploys. `npm run build` (with real
+// credentials) is what actually validates the schema against TinaCloud.
+try {
+  const configStat = statSync('tina/config.ts');
+  const lockStat = existsSync('tina/tina-lock.json') ? statSync('tina/tina-lock.json') : null;
+
+  if (!lockStat) {
+    errors.push(
+      'tina/tina-lock.json is missing. Run `npx tinacms dev` once to generate it, then commit it.'
+    );
+  } else if (configStat.mtimeMs > lockStat.mtimeMs) {
+    warnings.push(
+      'tina/config.ts is newer than tina/tina-lock.json, so the lock MAY be stale.\n' +
+        '     Only `tinacms dev` regenerates the lock file (not `tinacms build`). If you changed\n' +
+        '     the schema, run `npx tinacms dev` once and commit tina/tina-lock.json; otherwise the\n' +
+        '     TinaCloud build can fail with a local/remote schema mismatch.'
+    );
+  }
+} catch {
+  /* nothing to check */
 }
 
 // A localhost site URL is baked into sitemap.xml / robots.txt / rss.xml at build time.

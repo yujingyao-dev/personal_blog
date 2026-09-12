@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { client } from '@/lib/tina';
-import { formatDate, toPostSummaries } from '@/lib/site';
+import { formatDate, postSlug, toPostSummaries } from '@/lib/site';
 
 export const revalidate = 60;
 
@@ -17,10 +17,10 @@ export default async function PostsPage() {
       ) : (
         <ul className="space-y-8">
           {posts.map((post) => (
-            <li key={post.filename}>
+            <li key={post.relativePath}>
               <article>
                 <h2 className="text-xl font-semibold">
-                  <Link href={`/posts/${post.filename}`} className="hover:underline">
+                  <Link href={`/posts/${postSlug(post)}`} className="hover:underline">
                     {post.title}
                   </Link>
                 </h2>

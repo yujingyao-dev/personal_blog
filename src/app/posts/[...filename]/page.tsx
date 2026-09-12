@@ -3,7 +3,13 @@ import type { Metadata } from 'next';
 import PostClient from './post-client';
 import { client } from '@/lib/tina';
 
-type Params = { filename: string };
+/**
+ * Catch-all (`[...filename]`) rather than a single segment (`[filename]`), so posts in
+ * subfolders work: `content/posts/2026/new-post.mdx` is served at `/posts/2026/new-post`.
+ * With a single segment Next encodes the slash as `%2F` when prerendering
+ * (`/posts/2026%2Fnested-post`), which never matches the URL the lists and sitemap emit.
+ */
+type Params = { filename: string[] };
 
 /**
  * Revalidate so an edit to a published post actually reaches the article page.
@@ -13,9 +19,10 @@ type Params = { filename: string };
  */
 export const revalidate = 60;
 
-/** Editor-authored URLs use the full path within the collection, so nested posts work. */
-function toRelativePath(filename: string) {
-  return filename.endsWith('.mdx') || filename.endsWith('.md') ? filename : `${filename}.mdx`;
+/** Route segments -> the path used to look the document up in the collection. */
+function toRelativePath(segments: string[]) {
+  const slug = segments.join('/');
+  return slug.endsWith('.mdx') || slug.endsWith('.md') ? slug : `${slug}.mdx`;
 }
 
 function isPublished(node: { draft: boolean | null } | null | undefined) {
@@ -25,16 +32,18 @@ function isPublished(node: { draft: boolean | null } | null | undefined) {
 /**
  * Pre-render every published post as static HTML at build time.
  *
- * Uses `_sys.relativePath` (not `filename`) so posts organised in subfolders such as
- * `content/posts/2026/new-post.mdx` resolve, and drafts are excluded so `draft: true`
- * really does unpublish a post instead of only hiding it from lists.
+ * Uses `_sys.relativePath` (not `filename`, which is only the basename) so subfolders
+ * resolve, and excludes drafts so `draft: true` really does unpublish a post rather than
+ * only hiding it from lists.
  */
 export async function generateStaticParams(): Promise<Params[]> {
   const { data } = await client.queries.postConnection();
   return (data?.postConnection?.edges ?? [])
     .map((edge) => edge?.node)
     .filter((node): node is NonNullable<typeof node> => isPublished(node))
-    .map((node) => ({ filename: node._sys.relativePath.replace(/\.mdx?$/, '') }));
+    .map((node) => ({
+      filename: node._sys.relativePath.replace(/\.mdx?$/, '').split('/'),
+    }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
@@ -57,14 +66,15 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 
 export default async function PostPage({ params }: { params: Promise<Params> }) {
   const { filename } = await params;
+  const relativePath = toRelativePath(filename);
 
   let result: Awaited<ReturnType<typeof client.queries.post>>;
   try {
-    result = await client.queries.post({ relativePath: toRelativePath(filename) });
+    result = await client.queries.post({ relativePath });
   } catch (error) {
     // Only transport failures land here. They must surface as errors rather than being
     // baked in as a permanent 404 for a post that exists.
-    console.error(`Failed to load post "${filename}":`, error);
+    console.error(`Failed to load post "${relativePath}":`, error);
     throw error;
   }
 

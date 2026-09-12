@@ -89,3 +89,16 @@ export function toPostSummaries(
     }))
     .sort((a, b) => sortKey(b.date) - sortKey(a.date));
 }
+
+/**
+ * The URL slug for a post.
+ *
+ * This MUST be used everywhere a post is linked, and it must derive from `relativePath`,
+ * not `filename`. `filename` is only the basename, so a post in a subfolder
+ * (`content/posts/2026/new-post.mdx`) is prerendered at `/posts/2026/new-post` (that is what
+ * `generateStaticParams` and the sitemap/RSS use) but would be linked as `/posts/new-post` —
+ * a 404.
+ */
+export function postSlug(post: Pick<PostSummary, 'relativePath'>): string {
+  return post.relativePath.replace(/\.mdx?$/, '');
+}

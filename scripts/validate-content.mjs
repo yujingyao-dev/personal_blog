@@ -16,7 +16,7 @@
  *   --strict  treat raw HTML nodes (unregistered/lowercase component names) as failures
  */
 import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, relative, sep } from 'node:path';
 import { parseMDX } from '@tinacms/mdx';
 import yaml from 'js-yaml';
 
@@ -151,7 +151,15 @@ let documents = 0;
 for (const collection of COLLECTIONS) {
   let files;
   try {
-    files = readdirSync(collection.dir).filter((file) => /\.mdx?$/.test(file));
+    // Recursive on purpose: a post in a subfolder (`content/posts/2026/x.mdx`) is a valid,
+    // linkable route, so it must not escape this gate. `withFileTypes` is used to rebuild the
+    // path relative to the collection.
+    files = readdirSync(collection.dir, { recursive: true, withFileTypes: true })
+      .filter((entry) => entry.isFile() && /\.mdx?$/.test(entry.name))
+      .map((entry) => {
+        const parent = entry.parentPath ?? entry.path ?? collection.dir;
+        return relative(collection.dir, join(parent, entry.name)).split(sep).join('/');
+      });
   } catch {
     continue; // collection directory does not exist yet
   }

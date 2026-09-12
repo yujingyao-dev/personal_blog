@@ -304,6 +304,9 @@ npm run check:content -- --strict # 原始 HTML 也视为失败
 | `npm run smoke:draft` | **内容门禁 + 草稿不外泄**：构造坏 MDX 断言校验器失败；构造 `draft: true` 断言不为它生成页面 |
 | `npm run smoke:save` | **写入路径**：在编辑器里改标题并 Save，断言改动真的落到 `.mdx` 文件，然后改回去 |
 | `npm run smoke:http` | **HTTP 状态码**：各路由 200；不存在的文章必须是 **404 而不是 500** |
+| `npm run check:routes` | **路由契约**：列表页/首页/sitemap/RSS 发出的每个文章 URL，都必须有对应的预渲染页面（离线，读构建产物，捕获子目录文章链接错位这类问题） |
+| `npm run check:artifacts` | **产物校验**：生成的 client 不能指向 localhost、admin 不能是 dev 版标记 |
+| `npm run smoke:prod` | **生产模式全量验证**：起 `next start` 跑上面所有浏览器套件（历史上两个缺陷只在生产构建下暴露） |
 
 ```bash
 npm run dev                      # 终端 1：必须用这个（见下方注意事项）

@@ -2,12 +2,22 @@ import { defineConfig, type TinaField, type TinaTemplate } from 'tinacms';
 
 /**
  * Branch resolution.
- * - NEXT_PUBLIC_TINA_BRANCH: set explicitly (works locally and at build time)
- * - NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF: provided by Vercel for branch/preview builds
- * - HEAD: provided by Netlify
+ *
+ * - `NEXT_PUBLIC_TINA_BRANCH` — set explicitly. Worth setting on Vercel for Production AND
+ *   Preview, because this value decides which TinaCloud branch the editor writes to.
+ * - `VERCEL_GIT_COMMIT_REF` — Vercel's system variable for the branch being built. Note the
+ *   name: Vercel does NOT provide a `NEXT_PUBLIC_`-prefixed variant, so an earlier revision
+ *   of this file referenced a variable that never exists on Vercel.
+ * - `HEAD` — Netlify's equivalent.
+ *
+ * Caveat: on a preview deployment this resolves to the feature branch, which TinaCloud must
+ * have indexed, otherwise `tinacms build` fails with "Branch '<name>' is not on TinaCloud".
+ * Pinning `NEXT_PUBLIC_TINA_BRANCH=main` instead makes preview editors edit `main` — content
+ * that is not what the preview URL renders. Choose deliberately; see DEPLOYMENT.md.
  */
 const branch =
   process.env.NEXT_PUBLIC_TINA_BRANCH ||
+  process.env.VERCEL_GIT_COMMIT_REF ||
   process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF ||
   process.env.HEAD ||
   'main';

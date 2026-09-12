@@ -1,5 +1,5 @@
 import { client } from '@/lib/tina';
-import { parseDate, siteUrl, toPostSummaries } from '@/lib/site';
+import { parseDate, postSlug, siteUrl, toPostSummaries } from '@/lib/site';
 
 export const revalidate = 60;
 
@@ -19,7 +19,7 @@ export async function GET() {
 
   const items = posts
     .map((post) => {
-      const url = `${base}/posts/${post.relativePath.replace(/\.mdx?$/, '')}`;
+      const url = `${base}/posts/${postSlug(post)}`;
       const published = parseDate(post.date);
       return `    <item>
       <title>${escapeXml(post.title)}</title>

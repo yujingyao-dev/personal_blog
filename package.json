@@ -6,7 +6,9 @@
     "dev": "tinacms dev -c \"next dev\"",
     "check:env": "node scripts/check-env.mjs",
     "check:content": "node scripts/validate-content.mjs",
-    "build": "node scripts/check-env.mjs --strict && tinacms build && node scripts/validate-content.mjs --strict && next build",
+    "check:artifacts": "node scripts/verify-build-artifacts.mjs",
+    "check:routes": "node scripts/route-contract-smoke.mjs",
+    "build": "node scripts/check-env.mjs --strict && tinacms build && node scripts/verify-build-artifacts.mjs --strict && node scripts/validate-content.mjs --strict && next build",
     "build:local": "node scripts/build-local.mjs",
     "check:local-api": "node scripts/check-local-api.mjs",
     "start": "next start",
@@ -17,6 +19,7 @@
     "smoke:draft": "node scripts/content-guards-smoke.mjs",
     "smoke:save": "node scripts/save-smoke.mjs",
     "smoke:http": "node scripts/http-status-smoke.mjs",
+    "smoke:prod": "node scripts/verify-prod.mjs",
     "smoke": "npm run smoke:http && npm run smoke:admin && npm run smoke:visual && npm run smoke:interaction && npm run smoke:save"
   },
   "dependencies": {

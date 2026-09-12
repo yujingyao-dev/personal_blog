@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { client } from '@/lib/tina';
-import { parseDate, siteUrl, toPostSummaries } from '@/lib/site';
+import { parseDate, postSlug, siteUrl, toPostSummaries } from '@/lib/site';
 
 export const revalidate = 60;
 
@@ -19,7 +19,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // the whole build with an error pointing at the sitemap instead of the post.
       const lastModified = parseDate(post.date);
       return {
-        url: `${base}/posts/${post.relativePath.replace(/\.mdx?$/, '')}`,
+        url: `${base}/posts/${postSlug(post)}`,
         ...(lastModified ? { lastModified } : {}),
         changeFrequency: 'weekly' as const,
         priority: 0.7,
