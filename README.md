@@ -119,7 +119,22 @@ const components = {
 | 纯展示 | 若干 `string` 字段 | `Callout` |
 | 展示 + 嵌套富文本 | 加 `children`（`rich-text`） | `Callout` |
 | 交互（本地状态） | `'use client'` + `useState` | `Counter` |
-| 交互 + 列表数据 | `type: 'object', list: true` | `Tabs`（注意列表内用 `string`，不要用 `rich-text`） |
+| 交互 + 列表数据 | `type: 'object', list: true` | `Tabs` |
+| 图片 + 图注 | `type: 'image'` + `string` | `Figure` |
+| 第三方嵌入 | 白名单 `provider` + ID，组件内拼 URL | `VideoEmbed` |
+
+已内置的 5 个组件（都会出现在编辑器「插入组件」菜单里）：
+
+| 组件 | 说明 |
+| --- | --- |
+| `Callout` | 提示框，支持 `children` 嵌套富文本 |
+| `Counter` | 计数器，状态存 localStorage，刷新后保留 |
+| `Tabs` | 标签页，符合 WAI-ARIA tabs 模式（方向键可切换） |
+| `Figure` | 图片 + 图注；本地图走 `public/uploads`，远程图走 `next/image` |
+| `VideoEmbed` | YouTube / Bilibili，填 ID 或整条链接均可，src 由组件按白名单拼接 |
+
+> `VideoEmbed` **不接受任意 iframe 地址** —— 它只从校验过的视频 ID 拼接播放器 URL，
+> 这样即使有人在 MDX 里手写标签也无法注入任意 iframe。
 
 ---
 

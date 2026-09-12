@@ -84,6 +84,52 @@ const richTextTemplates: TinaTemplate[] = [
       },
     ],
   },
+  {
+    name: 'Figure',
+    label: '图片 (Figure)',
+    fields: [
+      { name: 'src', label: '图片', type: 'image', required: true },
+      { name: 'alt', label: '替代文字 (alt)', type: 'string' },
+      { name: 'caption', label: '图注', type: 'string' },
+      {
+        name: 'width',
+        label: '宽度 (px)',
+        type: 'number',
+      },
+      {
+        name: 'height',
+        label: '高度 (px)',
+        type: 'number',
+      },
+      {
+        name: 'priority',
+        label: '优先加载（首屏图片）',
+        type: 'boolean',
+      },
+    ],
+  },
+  {
+    name: 'VideoEmbed',
+    label: '视频 (Video)',
+    fields: [
+      {
+        name: 'provider',
+        label: '平台',
+        type: 'string',
+        options: ['youtube', 'bilibili'],
+        required: true,
+      },
+      {
+        name: 'videoId',
+        label: '视频 ID 或链接',
+        type: 'string',
+        description: '可以填视频 ID，也可以直接粘贴完整链接。',
+        required: true,
+      },
+      { name: 'title', label: '标题（无障碍）', type: 'string' },
+      { name: 'caption', label: '说明文字', type: 'string' },
+    ],
+  },
 ];
 
 const postFields: TinaField[] = [

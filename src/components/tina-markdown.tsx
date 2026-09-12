@@ -6,9 +6,11 @@ import { TinaMarkdown } from 'tinacms/dist/rich-text';
 import { Callout } from '@/components/mdx/callout';
 import { Counter } from '@/components/mdx/counter';
 import { CopyButton } from '@/components/mdx/copy-button';
+import { Figure } from '@/components/mdx/figure';
 import { InvalidMarkdown } from '@/components/mdx/invalid-markdown';
 import { sanitizeUrl } from '@/components/mdx/sanitize-url';
 import { Tabs } from '@/components/mdx/tabs';
+import { VideoEmbed } from '@/components/mdx/video-embed';
 
 /**
  * Props as delivered by <TinaMarkdown>. The `Record<string, unknown>` extension is
@@ -30,6 +32,22 @@ export interface CounterBlockProps extends Record<string, unknown> {
 
 export interface TabsBlockProps extends Record<string, unknown> {
   tabs?: { label?: string | null; content?: string | null }[] | null;
+}
+
+export interface FigureBlockProps extends Record<string, unknown> {
+  src?: string | null;
+  alt?: string | null;
+  caption?: string | null;
+  width?: number | null;
+  height?: number | null;
+  priority?: boolean | null;
+}
+
+export interface VideoEmbedBlockProps extends Record<string, unknown> {
+  provider?: string | null;
+  videoId?: string | null;
+  title?: string | null;
+  caption?: string | null;
 }
 
 /**
@@ -60,6 +78,18 @@ const components = {
   Tabs: (props: TabsBlockProps) => (
     <div data-tina-field={tinaField(props)}>
       <Tabs {...props} />
+    </div>
+  ),
+
+  Figure: (props: FigureBlockProps) => (
+    <div data-tina-field={tinaField(props)}>
+      <Figure {...props} />
+    </div>
+  ),
+
+  VideoEmbed: (props: VideoEmbedBlockProps) => (
+    <div data-tina-field={tinaField(props)}>
+      <VideoEmbed {...props} />
     </div>
   ),
 

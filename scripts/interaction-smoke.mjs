@@ -90,6 +90,27 @@ try {
     (await page.locator('aside.border-sky-300').count()) > 0 &&
       (await page.locator('aside.border-amber-300').count()) > 0
   );
+
+  // --- Figure ---------------------------------------------------------------
+  const figure = page.locator('figure').first();
+  check('figure renders', (await figure.count()) > 0);
+  const figureImage = figure.locator('img').first();
+  check('figure image has a src', ((await figureImage.getAttribute('src')) ?? '').length > 0);
+  check(
+    'figure caption renders',
+    (await figure.locator('figcaption').count()) > 0 && ((await figure.locator('figcaption').innerText()).length > 0)
+  );
+  check(
+    'figure image actually loads',
+    await figureImage.evaluate((img) => img.complete && img.naturalWidth > 0)
+  );
+
+  // --- VideoEmbed -----------------------------------------------------------
+  const iframe = page.locator('iframe').first();
+  check('video embed renders an iframe', (await iframe.count()) > 0);
+  const src = (await iframe.getAttribute('src')) ?? '';
+  check('video embed src is a provider embed URL', /youtube-nocookie\.com\/embed\//.test(src), src);
+  check('video embed has an accessible title', ((await iframe.getAttribute('title')) ?? '').length > 0);
 } catch (error) {
   check('interaction test completed', false, error.message);
 } finally {

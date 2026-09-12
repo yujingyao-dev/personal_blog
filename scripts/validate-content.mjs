@@ -68,6 +68,26 @@ const richTextField = {
         },
       ],
     },
+    {
+      name: 'Figure',
+      fields: [
+        { name: 'src', type: 'image' },
+        { name: 'alt', type: 'string' },
+        { name: 'caption', type: 'string' },
+        { name: 'width', type: 'number' },
+        { name: 'height', type: 'number' },
+        { name: 'priority', type: 'boolean' },
+      ],
+    },
+    {
+      name: 'VideoEmbed',
+      fields: [
+        { name: 'provider', type: 'string', options: ['youtube', 'bilibili'] },
+        { name: 'videoId', type: 'string' },
+        { name: 'title', type: 'string' },
+        { name: 'caption', type: 'string' },
+      ],
+    },
   ],
 };
 

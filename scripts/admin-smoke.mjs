@@ -66,6 +66,8 @@ try {
   check('Callout rendered as editor embed', /提示框 \(Callout\)/.test(editorText));
   check('Counter rendered as editor embed', /计数器 \(Counter\)/.test(editorText));
   check('Tabs rendered as editor embed', /标签页 \(Tabs\)/.test(editorText));
+  check('Figure rendered as editor embed', /图片 \(Figure\)/.test(editorText));
+  check('VideoEmbed rendered as editor embed', /视频 \(Video\)/.test(editorText));
   check('embeds are editable (Open options)', /提示框 \(Callout\)[\s\S]*Open options/.test(editorText));
 
   // NOTE: visual editing (click-to-edit on the site page) is covered separately by
@@ -105,6 +107,8 @@ try {
     check('Embed menu offers Callout', /Callout|提示框/.test(menuText));
     check('Embed menu offers Counter', /Counter|计数器/.test(menuText));
     check('Embed menu offers Tabs', /Tabs|标签页/.test(menuText));
+    check('Embed menu offers Figure', /Figure|图片/.test(menuText));
+    check('Embed menu offers VideoEmbed', /VideoEmbed|视频/.test(menuText));
   }
 
   await page.screenshot({ path: OUT });
