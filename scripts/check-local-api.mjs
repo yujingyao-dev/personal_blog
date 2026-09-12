@@ -31,10 +31,11 @@ try {
   console.error(`   ${error?.message ?? error}`);
   console.error(
     '\nThe offline build reads content through the local API. Start it first in another terminal:\n' +
-      '   npx tinacms dev --noWatch\n' +
-      '   (add -c "next dev" to also serve the site — that is what `npm run dev` does)\n' +
+      '   npm run dev        (starts the local content API and the Next.js dev server)\n' +
+      'or: npx tinacms dev  (content API only)\n' +
       'then re-run: npm run build:local\n' +
-      '\nNote: `tinacms dev --no-server` does NOT start the API — it only regenerates the client.\n'
+      '\nNote: `tinacms dev --no-server` does NOT start the API (it only regenerates the client),\n' +
+      'and `--noWatch` disables content indexing, so files added while it runs never appear.\n'
   );
   console.error('For a real production build (with TinaCloud credentials) use: npm run build');
   process.exit(1);

@@ -222,6 +222,30 @@ Tina 每次保存都会提交并触发 Vercel 构建，而每次构建都会生�
 
 ---
 
+### 内容校验（构建前置门禁）
+
+`scripts/validate-content.mjs` 直接读取 `content/**/*.mdx`，用 TinaCMS **同一个 MDX 解析器**
+（`@tinacms/mdx` 的 `parseMDX`）重新解析每篇正文，发现 `invalid_markdown` 节点就让构建失败。
+
+这一步不可省略：当解析失败时 TinaCMS 会把**整篇正文**替换成一个 `invalid_markdown` 节点，
+构建和部署都会「成功」，但页面只剩原始 MDX 源码。典型触发场景：
+
+- 组件属性名拼错：`<Callout typo="oops" />` → `Unable to find field definition for property "typo"`
+- 属性类型与 schema 不符：给声明为 `rich-text` 的字段传字符串
+- 组件名写成小写：`<callout />` 会被当作原始 HTML（非 strict 模式下为警告，`--strict` 下失败）
+
+它同时挂在两条构建路径上：
+
+```bash
+npm run check:content            # 单独运行（警告模式）
+npm run check:content -- --strict # 原始 HTML 也视为失败
+# npm run build 与 npm run build:local 都已内置 --strict
+```
+
+因为读文件而不是查 API，这个检查是**确定性且离线**的，生产构建里也能跑。
+
+---
+
 ## 编辑器与交互自动化冒烟测试
 
 三个 Playwright 脚本在真实浏览器（本机 Chrome）里验证 curl 无法验证的行为：
@@ -231,13 +255,22 @@ Tina 每次保存都会提交并触发 Vercel 构建，而每次构建都会生�
 | `npm run smoke:admin` | 编辑器启动、连上本地内容 API、打开文档、自定义组件作为 embed 出现、**「插入组件」菜单里有它们** |
 | `npm run smoke:visual` | 站点页面 `?edit=true` 的**可视化编辑**：编辑器挂载、内容正常渲染、`[data-tina-field]` 点击跳转 handle 指向自定义区块 |
 | `npm run smoke:interaction` | 已发布页面上的**交互行为**：计数器加减、刷新后从 localStorage 恢复、标签页切换、提示框嵌套富文本 |
-| `npm run smoke:draft` | **草稿不外泄**：临时插入 `draft: true` 文章后跑一次构建，断言没有为它生成任何页面 |
+| `npm run smoke:draft` | **内容门禁 + 草稿不外泄**：构造坏 MDX 断言校验器失败；构造 `draft: true` 断言不为它生成页面 |
 
 ```bash
-npm run dev                      # 终端 1：启动站点 + 本地内容 API
+npm run dev                      # 终端 1：必须用这个（见下方注意事项）
 npm install --no-save playwright # 首次运行需要（用本机 Chrome，不下载浏览器）
 npm run smoke                    # 终端 2：依次跑三个脚本
+npm run smoke:draft              # 内容门禁 + 草稿
 ```
+
+> ⚠️ 启动本地 API 请用 `npm run dev`，不要用下面两个已废弃/误解的用法：
+> - `tinacms dev --no-server` —— **不会**启动 API，只重新生成 client
+> - `tinacms dev --noWatch` —— 关闭监听，导致运行期间新增的 `content/` 文件永远不会被索引
+>
+> 这两个坑都是我实测踩到的：`smoke:draft` 会往 `content/` 写临时文件，如果 API 不监听，
+> 该断言就会失败并提示这一点。
+
 
 本机实测结果（全部通过，无 console 错误）：
 

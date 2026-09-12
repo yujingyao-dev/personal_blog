@@ -49,6 +49,17 @@ if (tina.status !== 0) {
   );
 }
 
+// 2b. Validate that every rich-text body actually parses. TinaCMS replaces a whole body
+//     with an `invalid_markdown` node when parsing fails, which would otherwise ship
+//     silently. Reads the .mdx files directly, so it needs no API and matches the check
+//     that runs in the production build.
+console.log('\n→ validating content (MDX bodies)\n');
+const validate = run('node', ['scripts/validate-content.mjs', '--strict']);
+if (validate.status !== 0) {
+  console.error('\n✖ Aborting the build: fix the content problems reported above.\n');
+  process.exit(validate.status ?? 1);
+}
+
 // 3. Build the site against the local API.
 console.log('\n→ next build (against the local content API)\n');
 const next = run('npx', ['next', 'build']);
