@@ -8,6 +8,11 @@ export const metadata: Metadata = {
     template: '%s | 我的博客',
   },
   description: '一个用 TinaCMS + Next.js 构建的静态个人博客',
+  alternates: {
+    types: {
+      'application/rss+xml': '/rss.xml',
+    },
+  },
 };
 
 function SiteHeader() {

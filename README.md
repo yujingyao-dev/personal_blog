@@ -178,3 +178,40 @@ npx next build
   Client Component（`useTina`）两部分，编辑器侧边栏的改动会实时反映到预览。
 - **静态站 + 交互组件不冲突**：组件初始 UI 会进入静态 HTML，交互 JS 作为客户端 chunk 下发。
   但组件不能依赖服务端接口，只能用本地状态或构建期传入的 props。
+- **SEO/订阅**：`/sitemap.xml`、`/robots.txt`、`/rss.xml` 都会列出全部已发布文章
+  （`draft: true` 的不会出现）。站点绝对地址优先取 `NEXT_PUBLIC_SITE_URL`，
+  在 Vercel 上自动回退到 `VERCEL_PROJECT_PRODUCTION_URL`。
+
+---
+
+## 编辑器自动化冒烟测试
+
+`scripts/admin-smoke.mjs` 用 Playwright 在真实浏览器（本机 Chrome）里验证可视化编辑器，
+覆盖 curl 无法验证的部分：编辑器能否启动、是否连上本地内容 API、能否打开文档、
+自定义组件是否作为富文本 embed 出现、以及「插入组件」菜单里有没有它们。
+
+```bash
+npm run dev                     # 终端 1
+npm install --no-save playwright # 首次运行需要（浏览器用本机 Chrome，无需下载）
+node scripts/admin-smoke.mjs    # 终端 2
+```
+
+结果（本机实测 16/16 通过）：
+
+```
+PASS  admin boots in local mode
+PASS  entered edit mode
+PASS  collection "博客文章" listed
+PASS  collection "独立页面" listed
+PASS  demo document listed
+PASS  document open in editor (breadcrumb + fields)
+PASS  form fields from schema rendered
+PASS  rich-text body loaded
+PASS  Callout rendered as editor embed
+PASS  Counter rendered as editor embed
+PASS  Tabs rendered as editor embed
+PASS  embeds are editable (Open options)
+PASS  rich-text toolbar exposes "Embed"
+PASS  Embed menu offers Callout / Counter / Tabs
+```
+

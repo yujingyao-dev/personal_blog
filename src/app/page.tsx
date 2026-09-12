@@ -1,23 +1,12 @@
 import Link from 'next/link';
 import { client } from '@/tina/__generated__/client';
+import { formatDate, toPostSummaries } from '@/lib/site';
 
 export const revalidate = 60;
 
-function formatDate(value?: string | null) {
-  if (!value) return '';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
-}
-
 export default async function HomePage() {
   const { data } = await client.queries.postConnection();
-  const posts = (data?.postConnection?.edges ?? [])
-    .map((edge) => edge?.node)
-    .filter((node): node is NonNullable<typeof node> => Boolean(node))
-    .filter((node) => !node.draft)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 3);
+  const posts = toPostSummaries(data?.postConnection?.edges).slice(0, 3);
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-16">
@@ -41,9 +30,9 @@ export default async function HomePage() {
         ) : (
           <ul className="space-y-6">
             {posts.map((post) => (
-              <li key={post._sys.relativePath}>
+              <li key={post.filename}>
                 <h3 className="text-lg font-medium">
-                  <Link href={`/posts/${post._sys.filename}`} className="hover:underline">
+                  <Link href={`/posts/${post.filename}`} className="hover:underline">
                     {post.title}
                   </Link>
                 </h3>
