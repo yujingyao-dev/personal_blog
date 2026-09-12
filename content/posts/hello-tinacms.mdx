@@ -1,6 +1,6 @@
 ---
 title: 使用 TinaCMS 搭建静态博客
-date: '2026-01-15T00:00:00.000Z'
+date: 2026-01-15T00:00:00.000Z
 description: 演示 MDX 内容与自定义交互组件如何在可视化编辑器中协同工作。
 tags:
   - TinaCMS
@@ -32,28 +32,23 @@ draft: false
 
 <Tabs
   tabs={[
-    { label: 'TypeScript', content: 'interface Post {\n  title: string;\n  date: string;\n}' },
-    { label: '安装', content: 'npm install tinacms @tinacms/cli' },
-    { label: '说明', content: '用编辑器的「插入组件」菜单即可添加这个标签页组件。' },
+    {
+      label: "TypeScript",
+      content: "interface Post {\n  title: string;\n  date: string;\n}"
+    },
+    { label: "安装", content: "npm install tinacms @tinacms/cli" },
+    {
+      label: "说明",
+      content: "用编辑器的「插入组件」菜单即可添加这个标签页组件。"
+    }
   ]}
 />
 
 ## 图片与视频
 
-<Figure
-  src="/uploads/sample-image.svg"
-  alt="示例图片"
-  caption="图注由编辑器填写，图片来自媒体库。"
-  width={1200}
-  height={675}
-/>
+<Figure src="/uploads/sample-image.svg" alt="示例图片" caption="图注由编辑器填写，图片来自媒体库。" width={1200} height={675} />
 
-<VideoEmbed
-  provider="youtube"
-  videoId="dQw4w9WgXcQ"
-  title="示例视频"
-  caption="支持 YouTube 与 Bilibili，填 ID 或直接粘贴链接都行。"
-/>
+<VideoEmbed provider="youtube" videoId="dQw4w9WgXcQ" title="示例视频" caption="支持 YouTube 与 Bilibili，填 ID 或直接粘贴链接都行。" />
 
 ## 代码块
 
@@ -69,10 +64,10 @@ export default defineConfig({
 
 ## 表格与引用
 
-| 能力 | 是否支持 |
-| --- | --- |
-| 可视化编辑 | ✅ |
-| MDX 自定义组件 | ✅ |
-| 纯静态部署 | ✅ |
+| 能力        | 是否支持 |
+| --------- | ---- |
+| 可视化编辑     | ✅    |
+| MDX 自定义组件 | ✅    |
+| 纯静态部署     | ✅    |
 
 > 内容保存在 Git 仓库里，编辑器保存即提交。

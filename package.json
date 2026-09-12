@@ -15,6 +15,7 @@
     "smoke:visual": "node scripts/visual-edit-smoke.mjs",
     "smoke:interaction": "node scripts/interaction-smoke.mjs",
     "smoke:draft": "node scripts/content-guards-smoke.mjs",
+    "smoke:save": "node scripts/save-smoke.mjs",
     "smoke": "npm run smoke:admin && npm run smoke:visual && npm run smoke:interaction"
   },
   "dependencies": {

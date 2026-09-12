@@ -261,6 +261,26 @@ npm run check:content -- --strict # 原始 HTML 也视为失败
 
 ---
 
+### 编辑保存会重写整个文件（正常现象）
+
+在编辑器里点 Save 时，TinaCMS 会用**自己的序列化器重写整个 `.mdx` 文件**，不只是改动的那个字段。
+实测差异：
+
+- frontmatter 的引号会被去掉：`date: '2026-01-15T00:00:00.000Z'` → `date: 2026-01-15T00:00:00.000Z`
+  （YAML 仍按时间戳解析，值不变，`formatDate` 渲染结果不变）
+- JSX 属性会被重新排版、单引号变双引号、超长行会折行
+
+**内容语义不会变**，但 `git diff` 第一次会比较大。这是 Tina 的 Git 工作流固有行为，
+第一次保存后格式就稳定了，后续 diff 会回到最小。仓库里当前的 `hello-tinacms.mdx`
+就是编辑器保存后的规范格式（可以跑 `npm run smoke:save` 复现）。
+
+### 只有拿到 Real 凭据后才会做的验证
+
+`npm run build`（生产构建，需 TinaCloud）会额外验证 `tina-lock.json` 与云端 schema 一致；
+在拿到 Client ID / Token 之前用 `npm run build:local` 即可。
+
+---
+
 ## 编辑器与交互自动化冒烟测试
 
 三个 Playwright 脚本在真实浏览器（本机 Chrome）里验证 curl 无法验证的行为：
@@ -271,6 +291,7 @@ npm run check:content -- --strict # 原始 HTML 也视为失败
 | `npm run smoke:visual` | 站点页面 `?edit=true` 的**可视化编辑**：编辑器挂载、内容正常渲染、`[data-tina-field]` 点击跳转 handle 指向自定义区块 |
 | `npm run smoke:interaction` | 已发布页面上的**交互行为**：计数器加减、刷新后从 localStorage 恢复、标签页切换、提示框嵌套富文本 |
 | `npm run smoke:draft` | **内容门禁 + 草稿不外泄**：构造坏 MDX 断言校验器失败；构造 `draft: true` 断言不为它生成页面 |
+| `npm run smoke:save` | **写入路径**：在编辑器里改标题并 Save，断言改动真的落到 `.mdx` 文件，然后改回去 |
 
 ```bash
 npm run dev                      # 终端 1：必须用这个（见下方注意事项）
