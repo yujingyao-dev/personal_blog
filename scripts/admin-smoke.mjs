@@ -68,6 +68,9 @@ try {
   check('Tabs rendered as editor embed', /标签页 \(Tabs\)/.test(editorText));
   check('embeds are editable (Open options)', /提示框 \(Callout\)[\s\S]*Open options/.test(editorText));
 
+  // NOTE: visual editing (click-to-edit on the site page) is covered separately by
+  // scripts/visual-edit-smoke.mjs, because it requires navigating away from the admin.
+
   // --- 4. the Embed menu (used to insert new components) ---------------------
   const paragraph = page.getByText('这篇文章用来验证', { exact: false }).first();
   let menuOpened = false;

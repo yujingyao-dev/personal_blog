@@ -184,34 +184,34 @@ npx next build
 
 ---
 
-## 编辑器自动化冒烟测试
+## 编辑器与交互自动化冒烟测试
 
-`scripts/admin-smoke.mjs` 用 Playwright 在真实浏览器（本机 Chrome）里验证可视化编辑器，
-覆盖 curl 无法验证的部分：编辑器能否启动、是否连上本地内容 API、能否打开文档、
-自定义组件是否作为富文本 embed 出现、以及「插入组件」菜单里有没有它们。
+三个 Playwright 脚本在真实浏览器（本机 Chrome）里验证 curl 无法验证的行为：
+
+| 脚本 | 验证内容 |
+| --- | --- |
+| `npm run smoke:admin` | 编辑器启动、连上本地内容 API、打开文档、自定义组件作为 embed 出现、**「插入组件」菜单里有它们** |
+| `npm run smoke:visual` | 站点页面 `?edit=true` 的**可视化编辑**：编辑器挂载、内容正常渲染、`[data-tina-field]` 点击跳转 handle 指向自定义区块 |
+| `npm run smoke:interaction` | 已发布页面上的**交互行为**：计数器加减、刷新后从 localStorage 恢复、标签页切换、提示框嵌套富文本 |
 
 ```bash
-npm run dev                     # 终端 1
-npm install --no-save playwright # 首次运行需要（浏览器用本机 Chrome，无需下载）
-node scripts/admin-smoke.mjs    # 终端 2
+npm run dev                      # 终端 1：启动站点 + 本地内容 API
+npm install --no-save playwright # 首次运行需要（用本机 Chrome，不下载浏览器）
+npm run smoke                    # 终端 2：依次跑三个脚本
 ```
 
-结果（本机实测 16/16 通过）：
+本机实测结果（全部通过，无 console 错误）：
 
-```
-PASS  admin boots in local mode
-PASS  entered edit mode
-PASS  collection "博客文章" listed
-PASS  collection "独立页面" listed
-PASS  demo document listed
-PASS  document open in editor (breadcrumb + fields)
-PASS  form fields from schema rendered
-PASS  rich-text body loaded
-PASS  Callout rendered as editor embed
-PASS  Counter rendered as editor embed
-PASS  Tabs rendered as editor embed
-PASS  embeds are editable (Open options)
-PASS  rich-text toolbar exposes "Embed"
-PASS  Embed menu offers Callout / Counter / Tabs
-```
+- `smoke:admin` **16/16** —— 含 `Embed menu offers Callout / Counter / Tabs`
+- `smoke:visual` **5/5** —— handle 形如 `tgp3d0---post.body.children.3.props`
+- `smoke:interaction` **10/10** —— 计数器 `0 → 2 → 1`，刷新后仍为 `1`
+
+> 注意：`[data-tina-field]` 只会注入到**站点页面**（`/posts/<slug>?edit=true`），
+> 不会出现在 `/admin/index.html` 的表单里，所以可视化编辑单独用 `smoke:visual` 验证。
+
+### 组件交互的持久化说明
+
+静态站点没有后端，交互组件的状态只能存在浏览器里。`Counter` 通过
+`usePersistentState`（`src/lib/use-persistent-state.ts`）写入 localStorage，并且在
+effect 里读取而非渲染期读取，保证服务端 HTML 与首次客户端渲染一致（避免 hydration 不匹配）。
 

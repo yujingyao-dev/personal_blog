@@ -1,11 +1,34 @@
 'use client';
 
-import type { Components, TinaMarkdownContent } from 'tinacms/dist/rich-text';
-import { TinaMarkdown } from 'tinacms/dist/rich-text';
+import { tinaField } from 'tinacms/dist/react';
 import { Callout } from '@/components/mdx/callout';
 import { Counter } from '@/components/mdx/counter';
 import { CopyButton } from '@/components/mdx/copy-button';
 import { Tabs } from '@/components/mdx/tabs';
+import type { Components, TinaMarkdownContent } from 'tinacms/dist/rich-text';
+import { TinaMarkdown } from 'tinacms/dist/rich-text';
+
+/**
+ * Props as delivered by <TinaMarkdown>. The `Record<string, unknown>` extension is
+ * required by `tinaField`, and `_content_source` is the metadata TinaCMS injects in
+ * edit mode (see the Click-To-Edit API docs).
+ */
+export interface CalloutBlockProps extends Record<string, unknown> {
+  type?: 'info' | 'warning' | 'success' | 'danger' | null;
+  title?: string | null;
+  body?: string | null;
+  children?: TinaMarkdownContent | TinaMarkdownContent[] | null;
+}
+
+export interface CounterBlockProps extends Record<string, unknown> {
+  label?: string | null;
+  initialValue?: number | null;
+  step?: number | null;
+}
+
+export interface TabsBlockProps extends Record<string, unknown> {
+  tabs?: { label?: string | null; content?: string | null }[] | null;
+}
 
 /**
  * The single source of truth that maps MDX/rich-text element names to React components.
@@ -13,32 +36,34 @@ import { Tabs } from '@/components/mdx/tabs';
  * The keys MUST match:
  *  - the `name` of each rich-text template in `tina/config.ts` (PascalCase!), and
  *  - the element name the editor writes into the .mdx file.
+ *
+ * Each custom entry wraps the component in a `<div data-tina-field={tinaField(props)}>`.
+ * In edit mode TinaCMS injects `_content_source` metadata into `props`; `tinaField` turns
+ * that into the path the editor needs, enabling click-to-edit straight from the page.
+ * `[data-tina-field]` must sit on an HTML element, not on a React component.
  */
 const components = {
-  // Custom components inserted from the editor's "embed" menu.
-  Callout: (props: {
-    type?: 'info' | 'warning' | 'success' | 'danger' | null;
-    title?: string | null;
-    body?: string | null;
-    children?: TinaMarkdownContent | TinaMarkdownContent[] | null;
-  }) => <Callout {...props} />,
-
-  Counter: (props: {
-    label?: string | null;
-    initialValue?: number | null;
-    step?: number | null;
-  }) => <Counter {...props} />,
-
-  Tabs: (props: { tabs?: { label?: string | null; content?: string | null }[] | null }) => (
-    <Tabs {...props} />
+  // --- Custom components inserted from the editor's "embed" menu ---------------
+  Callout: (props: CalloutBlockProps) => (
+    <div data-tina-field={tinaField(props)}>
+      <Callout {...props} />
+    </div>
   ),
 
-  // Built-in element overrides.
-  code_block: (props: {
-    value?: string;
-    lang?: string;
-    children?: React.ReactNode;
-  }) => {
+  Counter: (props: CounterBlockProps) => (
+    <div data-tina-field={tinaField(props)}>
+      <Counter {...props} />
+    </div>
+  ),
+
+  Tabs: (props: TabsBlockProps) => (
+    <div data-tina-field={tinaField(props)}>
+      <Tabs {...props} />
+    </div>
+  ),
+
+  // --- Built-in element overrides ---------------------------------------------
+  code_block: (props: { value?: string; lang?: string; children?: React.ReactNode }) => {
     const code = typeof props.value === 'string' ? props.value : '';
     return (
       <div className="not-prose group relative my-6 overflow-hidden rounded-lg bg-slate-900 dark:bg-slate-950">

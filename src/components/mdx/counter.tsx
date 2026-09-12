@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { usePersistentState } from '@/lib/use-persistent-state';
 
 export interface CounterProps {
   label?: string | null;
@@ -11,14 +11,22 @@ export interface CounterProps {
 /**
  * A purely client-side interactive component. Safe for a static site: it holds local
  * state only and never calls a backend.
+ *
+ * The count is persisted to localStorage so it survives navigation, and read in an
+ * effect so the server-rendered HTML and the first client render agree.
  */
 export function Counter({ label, initialValue, step }: CounterProps) {
   const initial = typeof initialValue === 'number' ? initialValue : 0;
-  const increment = typeof step === 'number' ? step : 1;
-  const [count, setCount] = useState(initial);
+  const increment = typeof step === 'number' && step !== 0 ? step : 1;
+
+  const storageKey = `mdx:counter:${label ?? 'counter'}:${initial}`;
+  const [count, setCount, bindRef] = usePersistentState<number>(storageKey, initial);
 
   return (
-    <div className="not-prose my-6 inline-flex items-center gap-3 rounded-lg border border-slate-200 p-2 dark:border-slate-700">
+    <div
+      ref={bindRef}
+      className="not-prose my-6 inline-flex items-center gap-3 rounded-lg border border-slate-200 p-2 dark:border-slate-700"
+    >
       <button
         type="button"
         onClick={() => setCount((value) => value - increment)}
