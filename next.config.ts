@@ -1,13 +1,12 @@
 import type { NextConfig } from 'next';
+import { ALLOWED_IMAGE_HOSTS } from './src/lib/image-hosts';
 
 const nextConfig: NextConfig = {
   images: {
-    remotePatterns: [
-      // TinaCloud media assets
-      { protocol: 'https', hostname: 'assets.tina.io' },
-      // Vercel preview/deployment domains
-      { protocol: 'https', hostname: '**.vercel.app' },
-    ],
+    remotePatterns: ALLOWED_IMAGE_HOSTS.map((hostname) => ({
+      protocol: 'https' as const,
+      hostname,
+    })),
   },
 };
 

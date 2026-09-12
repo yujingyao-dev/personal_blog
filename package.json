@@ -2,12 +2,16 @@
   "name": "personal-blog",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "dev": "tinacms dev -c \"next dev\"",
     "check:env": "node scripts/check-env.mjs",
     "check:content": "node scripts/validate-content.mjs",
     "check:artifacts": "node scripts/verify-build-artifacts.mjs",
     "check:routes": "node scripts/route-contract-smoke.mjs",
+    "test:unit": "node --experimental-strip-types --no-warnings scripts/unit-image-hosts.mjs",
     "build": "node scripts/check-env.mjs --strict && tinacms build && node scripts/verify-build-artifacts.mjs --strict && node scripts/validate-content.mjs --strict && next build",
     "build:local": "node scripts/build-local.mjs",
     "check:local-api": "node scripts/check-local-api.mjs",

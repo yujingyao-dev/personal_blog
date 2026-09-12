@@ -133,6 +133,26 @@ const components = {
 | `Figure` | 图片 + 图注；本地图走 `public/uploads`，远程图走 `next/image` |
 | `VideoEmbed` | YouTube / Bilibili，填 ID 或整条链接均可，src 由组件按白名单拼接 |
 
+### 远程图片：新主机要加白名单
+
+`next/image` 只允许抓取 `images.remotePatterns` 里列出的主机。若编辑器里填了别的主机的图片
+URL，**页面仍会返回 200，但图片是坏的** —— 优化器会返回
+`400 "url" parameter is not allowed`，作者很难察觉。
+
+现在 `Figure` 会自动处理这种情况：主机不在白名单时改用普通 `<img>` 直接加载原图
+（开发模式下会打印一条警告提示你去加白名单），图注在两种情况下都会渲染，所以即使图片本身
+也加载失败，错误也不会被完全隐藏。
+
+白名单只有一处定义：`src/lib/image-hosts.ts`（`next.config.ts` 与 `Figure` 都从这里读）。
+
+```ts
+// 加一个新的图床主机
+export const ALLOWED_IMAGE_HOSTS = ['assets.tina.io', '**.vercel.app', 'i.example.com'];
+```
+
+`npm run test:unit` 覆盖主机匹配逻辑（含 `**.` 通配、大小写、以及 `assets.tina.io.evil.com`
+这类后缀欺骗必须不匹配）。
+
 > `VideoEmbed` **不接受任意 iframe 地址** —— 它只从校验过的视频 ID 拼接播放器 URL，
 > 这样即使有人在 MDX 里手写标签也无法注入任意 iframe。
 
@@ -306,6 +326,7 @@ npm run check:content -- --strict # 原始 HTML 也视为失败
 | `npm run smoke:http` | **HTTP 状态码**：各路由 200；不存在的文章必须是 **404 而不是 500** |
 | `npm run check:routes` | **路由契约**：列表页/首页/sitemap/RSS 发出的每个文章 URL，都必须有对应的预渲染页面（离线，读构建产物，捕获子目录文章链接错位这类问题） |
 | `npm run check:artifacts` | **产物校验**：生成的 client 不能指向 localhost、admin 不能是 dev 版标记 |
+| `npm run test:unit` | **单元测试**：图片主机白名单匹配（`.ts` 直接跑，无需构建） |
 | `npm run smoke:prod` | **生产模式全量验证**：起 `next start` 跑上面所有浏览器套件（历史上两个缺陷只在生产构建下暴露） |
 
 ```bash
