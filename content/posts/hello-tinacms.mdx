@@ -1,0 +1,61 @@
+---
+title: 使用 TinaCMS 搭建静态博客
+date: '2026-01-15T00:00:00.000Z'
+description: 演示 MDX 内容与自定义交互组件如何在可视化编辑器中协同工作。
+tags:
+  - TinaCMS
+  - Next.js
+  - MDX
+draft: false
+---
+
+# 欢迎
+
+这篇文章用来验证 **MDX 渲染** 与 **自定义交互组件** 是否都能正常工作。
+
+## 提示框组件
+
+<Callout type="info" title="关于渲染方式">
+  本站不使用 MDX 编译器，而是由 TinaCMS 把内容解析成 AST，再交给官方的
+  `TinaMarkdown` 组件渲染。
+</Callout>
+
+<Callout type="warning" title="注意" body="这是通过属性传入的纯文本内容。" />
+
+## 交互组件
+
+下面这个计数器是纯客户端组件，在静态站点上也能正常交互：
+
+<Counter label="点击次数" initialValue={0} step={1} />
+
+## 标签页
+
+<Tabs
+  tabs={[
+    { label: 'TypeScript', content: 'interface Post {\n  title: string;\n  date: string;\n}' },
+    { label: '安装', content: 'npm install tinacms @tinacms/cli' },
+    { label: '说明', content: '用编辑器的「插入组件」菜单即可添加这个标签页组件。' },
+  ]}
+/>
+
+## 代码块
+
+```ts
+export default defineConfig({
+  schema: {
+    collections: [
+      { name: 'post', path: 'content/posts', format: 'mdx', fields: [] },
+    ],
+  },
+});
+```
+
+## 表格与引用
+
+| 能力 | 是否支持 |
+| --- | --- |
+| 可视化编辑 | ✅ |
+| MDX 自定义组件 | ✅ |
+| 纯静态部署 | ✅ |
+
+> 内容保存在 Git 仓库里，编辑器保存即提交。
