@@ -25,6 +25,30 @@ const check = (name, passed, detail = '') => {
 };
 
 /** Every prerendered post page, as a URL path (e.g. "/posts/2026/nested-post"). */
+/**
+ * Every prerendered post page, as a URL path (e.g. "/posts/2026/nested-post").
+ *
+ * IMPORTANT: a dynamic route with `dynamicParams` left at its default also writes entries here
+ * for paths that were requested at runtime and resolved to 404 — serving the HTTP status test
+ * leaves `/posts/definitely-not-a-real-post` behind. Those are NOT pages the site publishes, so
+ * they must be excluded from the "everything generated is in the sitemap" direction.
+ * Next records the distinction in the sibling `.meta` file as `"status":404`.
+ */
+function isPublishedPage(dir, baseName) {
+  const meta = join(dir, `${baseName}.meta`);
+  if (!existsSync(meta)) return true; // no metadata written -> treat as a real page
+  try {
+    const parsed = JSON.parse(readFileSync(meta, 'utf8'));
+    // Verified against real build output: a genuinely prerendered page omits `status`
+    // entirely, while a runtime-served 404 records `"status":404`. So only an explicit
+    // non-200 status excludes the route.
+    if (typeof parsed.status === 'number' && parsed.status !== 200) return false;
+    return true;
+  } catch {
+    return true;
+  }
+}
+
 function prerenderedPostRoutes(dir = POSTS_DIR, prefix = '') {
   if (!existsSync(dir)) return [];
   const routes = [];
@@ -32,7 +56,9 @@ function prerenderedPostRoutes(dir = POSTS_DIR, prefix = '') {
     if (entry.isDirectory()) {
       routes.push(...prerenderedPostRoutes(join(dir, entry.name), `${prefix}/${entry.name}`));
     } else if (entry.name.endsWith('.html')) {
-      routes.push(`/posts${prefix}/${entry.name.replace(/\.html$/, '')}`);
+      const baseName = entry.name.replace(/\.html$/, '');
+      if (!isPublishedPage(dir, baseName)) continue;
+      routes.push(`/posts${prefix}/${baseName}`);
     }
   }
   return routes;

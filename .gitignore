@@ -23,6 +23,7 @@ next-env.d.ts
 /.npm-cache
 /.probe
 *-debug.png
+admin-debug.png
 
 # misc
 .DS_Store
