@@ -103,25 +103,37 @@ try {
   /* nothing to check */
 }
 
-// A localhost site URL is baked into sitemap.xml / robots.txt / rss.xml at build time.
-// `.env` is committed, and a hosting provider's environment variables do NOT override it,
-// so this silently ships a sitemap pointing at http://localhost:3000.
+// The site origin is baked into canonical / og:url / sitemap.xml / robots.txt / rss.xml at build
+// time, so a wrong value is a silent SEO failure rather than a visible error.
+const explicitSiteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').trim();
+// Both names are accepted on purpose. `NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL` is injected by
+// next.config.ts when Next boots, but this script runs BEFORE that, so on Vercel the raw
+// `VERCEL_PROJECT_PRODUCTION_URL` is the one actually present at this point.
+const hasVercelDomain = Boolean(
+  process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL?.trim() ||
+    process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim()
+);
 const localhostSiteUrl = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?/i.test(siteUrl);
 
 if (localhostSiteUrl && isProductionBuild) {
-  const message =
-    `NEXT_PUBLIC_SITE_URL is set to a localhost URL (${siteUrl}) for a production build. ` +
-    'sitemap.xml / robots.txt / rss.xml would be generated with localhost links.\n' +
-    '     Fix: set NEXT_PUBLIC_SITE_URL to the real origin in the hosting provider, and remove\n' +
-    '     it from `.env` (or leave it empty) — a value in `.env` wins over the provider settings.';
-  if (isVercel) errors.push(message);
-  else warnings.push(message);
+  errors.push(
+    `The resolved site origin is a localhost URL (${siteUrl}) for a production build, so\n` +
+      '     canonical / og:url / sitemap.xml / robots.txt / rss.xml would all point at localhost.\n' +
+      '     Fix: set NEXT_PUBLIC_SITE_URL to the real origin in the hosting provider, and keep it\n' +
+      '     out of `.env` (or leave it empty — a value in `.env` wins over the provider settings).'
+  );
 } else if (localhostSiteUrl) {
-  warnings.push(`NEXT_PUBLIC_SITE_URL is a localhost URL (${siteUrl}) — fine for local development.`);
-} else if (!siteUrl && !process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-  warnings.push(
-    'NEXT_PUBLIC_SITE_URL is unset and VERCEL_PROJECT_PRODUCTION_URL is unavailable — ' +
-      'sitemap.xml / robots.txt / rss.xml will contain http://localhost:3000.'
+  warnings.push(`Site origin is localhost (${siteUrl}) — fine for local development.`);
+} else if (isProductionBuild && !explicitSiteUrl && !hasVercelDomain) {
+  // Distinguish "will be wrong" from "might be wrong": with neither a site URL nor a Vercel
+  // domain the build produces localhost links, so this is a misconfiguration, not a hint.
+  errors.push(
+    'No site origin is configured, so canonical / og:url / sitemap.xml / robots.txt / rss.xml\n' +
+      '     would contain http://localhost:3000. Neither NEXT_PUBLIC_SITE_URL nor a Vercel project\n' +
+      '     domain was found. Fix: set NEXT_PUBLIC_SITE_URL in the hosting provider (Vercel →\n' +
+      '     Settings → Environment Variables). On Vercel this is usually unnecessary, because\n' +
+      '     VERCEL_PROJECT_PRODUCTION_URL supplies the *.vercel.app domain automatically — set\n' +
+      '     NEXT_PUBLIC_SITE_URL only once a custom domain exists.'
   );
 }
 

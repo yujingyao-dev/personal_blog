@@ -10,8 +10,13 @@
  * Vercel's non-public `VERCEL_PROJECT_PRODUCTION_URL` under a public name.
  */
 export function siteUrl() {
+  // Trim before the `||` chain: a value of `" "` is truthy, so an accidental space in an
+  // environment variable would otherwise pass straight through and produce an invalid origin
+  // (canonical / og:url become a bare space) with nothing reporting an error.
+  const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+
   const raw =
-    process.env.NEXT_PUBLIC_SITE_URL ||
+    explicit ||
     (process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL
       ? `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}`
       : undefined) ||

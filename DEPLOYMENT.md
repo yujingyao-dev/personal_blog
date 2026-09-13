@@ -116,9 +116,21 @@ npm run build                          # 不带 --skip-cloud-checks
    | `NEXT_PUBLIC_TINA_CLIENT_ID` | Client ID | 会被烘焙进 admin 的 JS |
    | `TINA_TOKEN` | Read Only Token | 仅构建期使用，不会进前端产物 |
    | `NEXT_PUBLIC_TINA_BRANCH` | `main` | **建议显式设置**；见下方分支说明 |
-   | `NEXT_PUBLIC_SITE_URL` | `https://<你的域名>` | 用于 sitemap / robots / RSS；不设则回退到 `VERCEL_PROJECT_PRODUCTION_URL`。**别写 localhost**，生产构建会直接失败 |
+   | `NEXT_PUBLIC_SITE_URL` | 可留空（见下） | 用于 canonical / og / sitemap / RSS；**不要填 localhost**，生产构建会直接失败 |
 
    > `TINA_TOKEN` 是敏感值，只放在 Vercel 环境变量里，不要提交到仓库。
+
+### `NEXT_PUBLIC_SITE_URL` 什么时候可以留空
+
+**还没有自定义域名时：留空或干脆不建这个变量，都不影响部署。**
+
+解析顺序是 `NEXT_PUBLIC_SITE_URL` → Vercel 项目域名（`VERCEL_PROJECT_PRODUCTION_URL`）→ localhost。
+Vercel 会自动提供项目域名，所以线上会用 `https://<项目名>.vercel.app` 生成 canonical / og / sitemap / RSS。
+
+- 留空字符串、完全不设、甚至只填了一个空格，都会正常回退（有单元测试覆盖）
+- 本地 `.env` 里也**建议不写**这一项：`.env` 里的值优先于 Vercel 环境变量，写了 localhost 会让生产构建直接失败
+- **等自定义域名配好后**，再回到 Vercel 加上 `NEXT_PUBLIC_SITE_URL=https://<你的域名>`，这些文件下次部署就会切换过去
+- 唯一会**硬失败**的情况：在 Vercel 上既没有这个变量、又拿不到项目域名（`check:env` 会拦住并提示）
 
 ### 分支（branch）怎么选
 
