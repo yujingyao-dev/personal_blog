@@ -17,6 +17,8 @@ import { join } from 'node:path';
 
 const APP_DIR = '.next/server/app';
 const POSTS_DIR = join(APP_DIR, 'posts');
+/** Treat missing build output as a failure instead of a skip (build:local passes this). */
+const requireArtifacts = process.argv.includes('--require-artifacts');
 
 const results = [];
 const check = (name, passed, detail = '') => {
@@ -79,6 +81,20 @@ function locsFrom(file, tag = 'loc') {
 
 try {
   const prerendered = prerenderedPostRoutes();
+
+  // A sibling check once failed a Vercel deploy by treating "artifacts not where I assumed" as a
+  // site defect. The assertions below compare emitted URLs against generated pages, so they need
+  // the generated output; without it there is nothing to compare and this must not block a deploy.
+  if (prerendered.length === 0 && !requireArtifacts) {
+    console.warn(
+      `⚠  No prerendered post pages found under ${POSTS_DIR} — the route contract checks were\n` +
+        '   NOT evaluated. Expected on a CI filesystem that keeps only the deployment output.\n' +
+        '   Use --require-artifacts to treat this as a failure (that is what build:local does).'
+    );
+    console.log('\n0/0 checks passed (skipped)');
+    process.exit(0);
+  }
+
   console.log(`prerendered post routes: ${prerendered.join(', ') || '(none)'}`);
   check('at least one post was prerendered', prerendered.length > 0);
 

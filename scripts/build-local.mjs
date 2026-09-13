@@ -70,5 +70,5 @@ if (next.status !== 0) process.exit(next.status ?? 1);
 //    filesystem pruned them. `npm run build` intentionally omits the flag for that reason.
 console.log('\n→ runtime independence + route contract\n');
 const runtime = run('node', ['scripts/runtime-independence-smoke.mjs', '--require-bundles']);
-const routes = run('node', ['scripts/route-contract-smoke.mjs']);
+const routes = run('node', ['scripts/route-contract-smoke.mjs', '--require-artifacts']);
 process.exit(runtime.status !== 0 ? (runtime.status ?? 1) : (routes.status ?? 1));
