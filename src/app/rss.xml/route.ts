@@ -29,7 +29,11 @@ ${published ? `      <pubDate>${published.toUTCString()}</pubDate>\n` : ''}${pos
     })
     .join('\n');
 
+  // The stylesheet processing instruction must sit between the XML declaration and
+  // the root element. Feed readers ignore it; a browser renders /rss.xsl instead of
+  // showing a wall of raw XML. Without it, clicking the feed link looks broken.
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="/rss.xsl"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>我的博客</title>
@@ -44,7 +48,24 @@ ${items}
 
   return new Response(xml, {
     headers: {
-      'Content-Type': 'application/rss+xml; charset=utf-8',
+      /*
+       * `application/xml`, deliberately NOT `application/rss+xml`.
+       *
+       * Chrome treats the feed MIME types (`application/rss+xml`,
+       * `application/atom+xml`) as plain text on navigation: `document.contentType`
+       * comes back as `text/plain` and the `<?xml-stylesheet?>` instruction is
+       * never honoured, so a visitor clicking the feed link sees a wall of raw XML.
+       * Measured on a real origin, one content type at a time:
+       *
+       *   application/rss+xml   -> RAW     (contentType=text/plain)
+       *   application/atom+xml  -> RAW     (contentType=text/plain)
+       *   application/xml       -> STYLED  (contentType=text/html)
+       *   text/xml              -> STYLED  (contentType=text/html)
+       *
+       * Feed readers parse the document body and accept `application/xml`
+       * universally, so nothing is lost on the subscription side.
+       */
+      'Content-Type': 'application/xml; charset=utf-8',
       'Cache-Control': 'public, max-age=0, s-maxage=60, stale-while-revalidate=300',
     },
   });

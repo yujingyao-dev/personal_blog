@@ -12,7 +12,7 @@
     "check:artifacts": "node scripts/verify-build-artifacts.mjs",
     "check:routes": "node scripts/route-contract-smoke.mjs",
     "check:runtime": "node scripts/runtime-independence-smoke.mjs",
-    "test:unit": "node --experimental-strip-types --no-warnings scripts/unit-image-hosts.mjs && node --experimental-strip-types --no-warnings scripts/unit-site-url.mjs",
+    "test:unit": "node --experimental-strip-types --no-warnings scripts/unit-image-hosts.mjs && node --experimental-strip-types --no-warnings scripts/unit-site-url.mjs && node scripts/unit-no-motion.mjs",
     "build": "node scripts/check-env.mjs --strict && tinacms build && node scripts/verify-build-artifacts.mjs --strict && node scripts/validate-content.mjs --strict && next build && node scripts/runtime-independence-smoke.mjs && node scripts/route-contract-smoke.mjs",
     "build:local": "node scripts/build-local.mjs",
     "check:local-api": "node scripts/check-local-api.mjs",
@@ -24,11 +24,13 @@
     "smoke:draft": "node scripts/content-guards-smoke.mjs",
     "smoke:save": "node scripts/save-smoke.mjs",
     "smoke:http": "node scripts/http-status-smoke.mjs",
+    "smoke:motion": "node scripts/motion-smoke.mjs",
     "smoke:prod": "node scripts/verify-prod.mjs",
-    "smoke": "npm run smoke:http && npm run smoke:admin && npm run smoke:visual && npm run smoke:interaction && npm run smoke:save"
+    "smoke": "npm run smoke:http && npm run smoke:admin && npm run smoke:visual && npm run smoke:interaction && npm run smoke:motion && npm run smoke:save"
   },
   "dependencies": {
     "@tinacms/mdx": "2.2.2",
+    "framer-motion": "^12.43.0",
     "next": "16.3.5",
     "react": "19.2.0",
     "react-dom": "19.2.0",

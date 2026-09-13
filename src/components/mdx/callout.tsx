@@ -2,6 +2,7 @@
 
 import {
   type CalloutType,
+  calloutAccents,
   calloutLabels,
   calloutStyles,
 } from '@/components/mdx/callout-styles';
@@ -24,6 +25,12 @@ function normalizeType(value?: string | null): CalloutType {
 /**
  * A display-only custom component. Nested rich text arrives as child nodes and is
  * rendered with a second <TinaMarkdown> call.
+ *
+ * Visual language: a thick saturated outline (Neo-Brutalism) over a translucent
+ * tinted fill with `backdrop-blur` (glassmorphism), with the variant colour
+ * repeated as a soft blurred glow in the corner so the slab does not read flat.
+ * The label is NOT uppercased: `title` is author-supplied copy, and transforming
+ * its case would be a content change rather than a style one.
  */
 export function Callout({ type, title, body, children }: CalloutProps) {
   const variant = normalizeType(type);
@@ -34,14 +41,27 @@ export function Callout({ type, title, body, children }: CalloutProps) {
   const hasChildren = Array.isArray(childNodes) ? childNodes.length > 0 : Boolean(childNodes);
 
   return (
-    <aside className={`not-prose my-6 rounded-lg border-l-4 p-4 ${calloutStyles[variant]}`}>
-      <p className="mb-1 text-sm font-semibold">
+    <aside
+      className={`not-prose relative my-8 overflow-hidden rounded-2xl border-4 p-5 shadow-brutal backdrop-blur-xl backdrop-saturate-125 dark:shadow-chalk ${calloutStyles[variant]}`}
+    >
+      <span
+        aria-hidden
+        className={`pointer-events-none absolute -top-12 -right-10 h-32 w-32 rounded-full opacity-25 blur-2xl ${calloutAccents[variant]}`}
+      />
+
+      <p className="relative mb-1.5 flex items-center gap-2 text-sm font-black tracking-wide">
+        <span
+          aria-hidden
+          className={`h-2.5 w-2.5 shrink-0 rotate-45 rounded-[3px] ${calloutAccents[variant]}`}
+        />
         {calloutLabels[variant]}
         {title ? ` · ${title}` : ''}
       </p>
-      {body ? <p className="text-sm leading-relaxed">{body}</p> : null}
+
+      {body ? <p className="relative text-sm leading-relaxed">{body}</p> : null}
+
       {hasChildren ? (
-        <div className="prose prose-sm mt-2 max-w-none dark:prose-invert">
+        <div className="prose prose-sm relative mt-3 max-w-none dark:prose-invert">
           <TinaMarkdown content={children as TinaMarkdownContent} />
         </div>
       ) : null}

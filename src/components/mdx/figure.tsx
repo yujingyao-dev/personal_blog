@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { ZoomableImage } from '@/components/mdx/zoomable-image';
 import { isUrlAllowedForOptimizer } from '@/lib/image-hosts';
 
 export interface FigureProps {
@@ -28,6 +29,9 @@ export interface FigureProps {
  *
  * The caption renders in both paths on purpose: if the fallback <img> is broken too, the mistake
  * stays visible instead of leaving an empty gap.
+ *
+ * Styling: a frosted plate inside a hard outline (the image keeps a softer inner radius so the
+ * frame reads as a mounted print), with the caption as a Neo-Brutalist "sticker" pill.
  */
 export function Figure({ src, alt, caption, width, height, priority }: FigureProps) {
   if (!src) return null;
@@ -57,31 +61,45 @@ export function Figure({ src, alt, caption, width, height, priority }: FigurePro
     }
   }
 
+  const imageClass = 'h-auto w-full rounded-xl';
+
+  const image =
+    isRemote && optimizerAllowed ? (
+      <Image
+        src={src}
+        alt={altText}
+        width={dimensions.width}
+        height={dimensions.height}
+        priority={Boolean(priority)}
+        sizes="(max-width: 768px) 100vw, 768px"
+        className={`relative ${imageClass}`}
+      />
+    ) : (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={altText}
+        width={dimensions.width}
+        height={dimensions.height}
+        loading={priority ? 'eager' : 'lazy'}
+        className={`relative ${imageClass}`}
+      />
+    );
+
   return (
-    <figure className="not-prose my-8">
-      {isRemote && optimizerAllowed ? (
-        <Image
-          src={src}
-          alt={altText}
-          width={dimensions.width}
-          height={dimensions.height}
-          priority={Boolean(priority)}
-          sizes="(max-width: 768px) 100vw, 768px"
-          className="h-auto w-full rounded-lg"
+    <figure className="not-prose my-10">
+      <div className="relative overflow-hidden rounded-2xl border-[3px] border-ink/85 bg-white/55 p-2 shadow-brutal-lg backdrop-blur-xl dark:border-chalk/20 dark:bg-white/[0.04] dark:shadow-chalk-lg">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -top-16 -right-12 h-32 w-32 rounded-full bg-[radial-gradient(circle_at_50%_50%,#6d5cff,transparent_70%)] opacity-30 blur-2xl"
         />
-      ) : (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={src}
-          alt={altText}
-          width={dimensions.width}
-          height={dimensions.height}
-          loading={priority ? 'eager' : 'lazy'}
-          className="h-auto w-full rounded-lg"
-        />
-      )}
+        <ZoomableImage src={src} alt={altText} caption={caption}>
+          {image}
+        </ZoomableImage>
+      </div>
+
       {caption ? (
-        <figcaption className="mt-2 text-center text-sm text-slate-500 dark:text-slate-400">
+        <figcaption className="mx-auto mt-3.5 w-fit max-w-full rounded-full border-2 border-ink/85 bg-white/80 px-4 py-1 text-center text-sm font-bold text-ink/70 shadow-brutal-xs backdrop-blur dark:border-chalk/25 dark:bg-white/[0.06] dark:text-slate-300 dark:shadow-chalk-xs">
           {caption}
         </figcaption>
       ) : null}

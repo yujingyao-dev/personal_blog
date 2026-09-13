@@ -1,23 +1,636 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/typography';
 
+/* ============================================================================
+   Dark mode strategy: ATTRIBUTE, not media query
+   ----------------------------------------------------------------------------
+   Tailwind v4's built-in `dark:` variant follows `prefers-color-scheme`, which
+   cannot be overridden by an explicit user choice. The site now has a theme
+   toggle, so `dark` is redefined to match an attribute the blocking script in
+   `layout.tsx` sets on <html> BEFORE first paint.
+
+   `:where()` keeps specificity at 0, so `dark:` utilities compose exactly as
+   they did under the media-query strategy — no specificity surprises.
+
+   `data-theme` holds `light` or `dark` and is the ONLY thing styling reads.
+   The toggle is two-state and reads the same attribute to pick its icon, so there
+   is no second attribute and no state to keep in sync.
+   ========================================================================== */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/* ============================================================================
+   Design system — "Soft Brutal Glass"
+   ----------------------------------------------------------------------------
+   Three pillars, layered on top of each other:
+
+     1. Glassmorphism        frosted panels: translucent fill + backdrop-blur +
+                             a hairline highlight ring. Tokens: --shadow-glass*.
+     2. Soft gradient shapes blurred, rounded, drifting pastel geometry.
+                             Tokens: --animate-blob*, --radius-blob.
+     3. Neo-Brutalism        hard black outlines + hard offset shadows + very
+                             heavy display type + sticker-like accents.
+                             Tokens: --color-ink / --color-chalk, --shadow-brutal*.
+
+   Colour roles:
+     ink       near-black outline/type in LIGHT mode
+     chalk     near-white outline/type in DARK mode
+     paper     warm off-white page base (light)
+     midnight  deep blue-black page base (dark)
+     iris/blush/sun/mint   the four gradient accent stops used by every shape
+
+   Every value below is exposed as a Tailwind token, so components stay
+   idiomatic (`border-2 border-ink shadow-brutal`) and the look can be retuned
+   from this one file.
+   ========================================================================== */
+
 @theme {
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
     'Noto Sans', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   --font-mono:
     ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* --- palette ------------------------------------------------------------ */
+  --color-ink: #0b1221;
+  --color-chalk: #e9eef8;
+  --color-paper: #f7f4ee;
+  --color-midnight: #060a12;
+
+  --color-iris: #6d5cff;
+  --color-blush: #ff6b9d;
+  --color-sun: #ffd166;
+  --color-mint: #4ade9b;
+
+  /* Text-safe variants of the two accents used for *body-copy* colours.
+     `--color-iris` on paper measures 4.14:1 — below the 4.5:1 AA floor for
+     normal text — so links/chips use these darker steps instead (6.26:1 and
+     5.35:1 respectively). The base hues stay for fills, strokes and gradients,
+     where contrast rules do not apply. See STYLE-DIRECTIONS.md §4. */
+  --color-iris-text: #4f3ce0;
+  --color-blush-text: #c2185b;
+
+  /* --- type scale (CJK-aware) ---------------------------------------------
+     Chinese glyphs are full-width and dense, so they need MORE line-height and
+     no negative tracking. Tailwind's Latin-tuned defaults from `text-5xl` up
+     (`leading-none`, `-0.025em`) make Chinese headings collide with each other.
+     These steps encode the corrected values once instead of repeating
+     `leading-*`/`tracking-*` at every call site. */
+  --text-display: 2.75rem;
+  --text-display--line-height: 1.18;
+  --text-display--letter-spacing: -0.01em;
+  --text-display--font-weight: 900;
+
+  --text-headline: 2.125rem;
+  --text-headline--line-height: 1.22;
+  --text-headline--letter-spacing: -0.01em;
+  --text-headline--font-weight: 900;
+
+  --text-title: 1.375rem;
+  --text-title--line-height: 1.4;
+  --text-title--font-weight: 800;
+
+  /* --- hard offset shadows (Neo-Brutalism) --------------------------------
+     Each one pairs the hard offset with an `inset` top highlight. That inset is
+     what stops a frosted panel from reading as a flat tinted rectangle: it
+     imitates the lit top edge of a sheet of glass. Because it lives in the
+     token, every panel on the site gained it at once.
+
+     `--shadow-chalk-*` are the dark-theme counterparts (the offset has to be
+     light there, or it disappears into the background). */
+  --shadow-brutal-xs: 2px 2px 0 0 #0b1221, inset 0 1px 0 0 rgb(255 255 255 / 0.5);
+  --shadow-brutal-sm: 3px 3px 0 0 #0b1221, inset 0 1px 0 0 rgb(255 255 255 / 0.5);
+  --shadow-brutal: 5px 5px 0 0 #0b1221, inset 0 1px 0 0 rgb(255 255 255 / 0.55);
+  --shadow-brutal-lg: 8px 8px 0 0 #0b1221, inset 0 1px 0 0 rgb(255 255 255 / 0.55);
+  --shadow-brutal-xl: 12px 12px 0 0 #0b1221, inset 0 1px 0 0 rgb(255 255 255 / 0.55);
+  --shadow-brutal-2xl: 18px 18px 0 0 #0b1221, inset 0 1px 0 0 rgb(255 255 255 / 0.55);
+
+  --shadow-chalk-xs: 2px 2px 0 0 #e9eef8, inset 0 1px 0 0 rgb(255 255 255 / 0.16);
+  --shadow-chalk-sm: 3px 3px 0 0 #e9eef8, inset 0 1px 0 0 rgb(255 255 255 / 0.16);
+  --shadow-chalk: 5px 5px 0 0 #e9eef8, inset 0 1px 0 0 rgb(255 255 255 / 0.18);
+  --shadow-chalk-lg: 8px 8px 0 0 #e9eef8, inset 0 1px 0 0 rgb(255 255 255 / 0.18);
+  --shadow-chalk-xl: 12px 12px 0 0 #e9eef8, inset 0 1px 0 0 rgb(255 255 255 / 0.18);
+  --shadow-chalk-2xl: 18px 18px 0 0 #e9eef8, inset 0 1px 0 0 rgb(255 255 255 / 0.18);
+
+  /* Coloured hard shadows: for accent surfaces that should not read as "black".
+     The `-xs` sizes exist for small chips, where a 5px offset would overwhelm
+     the element it is attached to. */
+  --shadow-brutal-iris: 5px 5px 0 0 #6d5cff, inset 0 1px 0 0 rgb(255 255 255 / 0.55);
+  --shadow-brutal-blush: 5px 5px 0 0 #ff6b9d, inset 0 1px 0 0 rgb(255 255 255 / 0.55);
+  --shadow-brutal-sun: 5px 5px 0 0 #ffd166, inset 0 1px 0 0 rgb(255 255 255 / 0.55);
+  --shadow-brutal-mint: 5px 5px 0 0 #4ade9b, inset 0 1px 0 0 rgb(255 255 255 / 0.55);
+
+  --shadow-brutal-iris-xs: 2px 2px 0 0 #6d5cff;
+  --shadow-brutal-blush-xs: 2px 2px 0 0 #ff6b9d;
+  --shadow-brutal-sun-xs: 2px 2px 0 0 #ffd166;
+  --shadow-brutal-mint-xs: 2px 2px 0 0 #4ade9b;
+
+  /* --- soft glass shadows -------------------------------------------------
+     STAGED — also unused. The glass panels currently carry a *hard* brutalist
+     offset instead, because stacking a soft and a hard shadow on one element
+     reads muddy. These are the alternative for surfaces that should feel
+     airy rather than printed (modals, popovers, the admin-adjacent chrome). */
+  --shadow-glass: 0 10px 34px -12px rgb(11 18 33 / 0.22);
+  --shadow-glass-lg: 0 28px 70px -28px rgb(11 18 33 / 0.4);
+  --shadow-glow-iris: 0 18px 45px -18px rgb(109 92 255 / 0.6);
+  --shadow-glow-blush: 0 18px 45px -18px rgb(255 107 157 / 0.55);
+
+  /* --- geometry ----------------------------------------------------------- */
+  --radius-blob: 2.5rem;
+
+  /* --- motion ------------------------------------------------------------- */
+  --animate-blob: blob 22s ease-in-out infinite;
+  --animate-blob-slow: blob 34s ease-in-out infinite;
+  --animate-drift: drift 16s ease-in-out infinite;
+  --animate-rise: rise 0.75s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  --animate-pop: pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+  --animate-bob: bob 5s ease-in-out infinite;
+  --animate-sheen: sheen 3.4s linear infinite;
+  --animate-spin-slow: spin 26s linear infinite;
+  --animate-rule: rule 0.8s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+
+  /* --- flowing geometry (pillar 2) ---------------------------------------
+     `flow` animates background-position, so the *colour itself* travels. The
+     element MUST also carry `bg-[size:220%_220%]` — a gradient sized to the box
+     has nothing to pan across and the animation is invisible.
+     `tumble` rotates the element, which drags its gradient round with it, so a
+     large shape reads as slowly swirling rather than merely drifting.
+     Durations are 30-120s deliberately: this is ambient background motion, not
+     a loading indicator.
+
+     The COMBINED tokens matter: `animate-*` sets the `animation` shorthand, so
+     putting `animate-flow` and `animate-tumble` on one element silently drops
+     one of them. Anything that both flows and tumbles must use a combined
+     token — and since both animate different properties (background-position
+     vs transform) they compose safely in one shorthand. */
+  --animate-flow: flow 32s ease-in-out infinite;
+  --animate-flow-slow: flow 56s ease-in-out infinite;
+  --animate-tumble: tumble 78s linear infinite;
+  --animate-tumble-slow: tumble 118s linear infinite;
+
+  /* --- water drift --------------------------------------------------------
+     A slow, non-uniform wander, so the fields read as suspended in liquid rather
+     than sliding on rails.
+
+     ⚠️ `water` animates the standalone `translate` property, NOT `transform`.
+     `animation` is a single shorthand, so an animation that also targeted
+     `transform` would silently cancel `tumble`'s rotation (last one wins) — and
+     rewriting the keyframes to include the rotation would make the two
+     impossible to time independently. `translate`/`rotate`/`scale` are separate
+     properties that compose with each other, so each animation owns exactly one.
+
+     Offsets are PERCENTAGES: they resolve against the element's own size, so one
+     keyframe set works for a 46rem blob and a 62rem one without a second token. */
+  --animate-flow-tumble: water 43s ease-in-out infinite, flow 32s ease-in-out infinite, tumble 78s linear infinite;
+  --animate-flow-tumble-slow: water 61s ease-in-out infinite, flow 56s ease-in-out infinite, tumble 118s linear infinite;
+
+  /* NOTE: there is deliberately no `morph` (border-radius) token any more.
+     Animating the radius was measured as the single most expensive animation on
+     the page — a changing radius re-rasterises the shape every frame. The organic
+     blob now has a FIXED radius and rotates instead. See STYLE-DIRECTIONS.md §7. */
+
+  @keyframes flow {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  @keyframes tumble {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Water drift: a closed loop with unequal waypoints, so the motion never
+     settles into an obvious back-and-forth. Percentages are relative to the
+     element's own box. */
+  @keyframes water {
+    0%,
+    100% {
+      translate: 0% 0%;
+    }
+    22% {
+      translate: 1.5% -1.1%;
+    }
+    41% {
+      translate: -0.7% 1.3%;
+    }
+    63% {
+      translate: 1.1% 0.8%;
+    }
+    82% {
+      translate: -1.4% -0.6%;
+    }
+  }
+
+  @keyframes blob {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+    }
+    33% {
+      transform: translate3d(3%, -4%, 0) scale(1.08) rotate(12deg);
+    }
+    66% {
+      transform: translate3d(-3%, 3%, 0) scale(0.94) rotate(-8deg);
+    }
+  }
+
+  @keyframes drift {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+    50% {
+      transform: translate3d(0, -14px, 0);
+    }
+  }
+
+  /* `backwards`, NOT `both` — and the distinction is load-bearing.
+
+     These entrance animations start at `opacity: 0`, so the first keyframe must
+     apply before/while the animation runs, or the element flashes at full opacity
+     and then jumps. That is what `backwards` gives: the `from` frame applies
+     immediately (including through any `animation-delay`, which the staggered
+     lists rely on), and once the animation ENDS the element returns to its plain
+     base style.
+
+     `both` additionally holds the LAST keyframe forever. An animated transform
+     always resolves to a matrix — ending the keyframe on `transform: none` does
+     NOT give a computed value of `none`, it gives `matrix(1, 0, 0, 1, 0, 0)`. So
+     with `both`, every element that ever used `animate-rise` keeps a transform
+     permanently, which:
+       - makes it a containing block for `position: fixed` descendants, trapping
+         any modal rendered inside it (this is how the article lightbox broke);
+       - keeps it promoted to its own composited layer for no benefit.
+
+     Verified in the browser: with `both` the computed transform stays
+     `matrix(1, 0, 0, 1, 0, 0)`; with `backwards` it returns to `none`. */
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 18px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes pop {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes bob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+
+  @keyframes sheen {
+    from {
+      background-position: -160% 0;
+    }
+    to {
+      background-position: 260% 0;
+    }
+  }
+
+  /* Grows a highlight bar out from the left — used under section headings.
+     Ends on `transform: none` for the same reason as `rise` above. */
+  @keyframes rule {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: none;
+    }
+  }
 }
 
-html {
-  scroll-behavior: smooth;
+/* ============================================================================
+   Base layer
+   ========================================================================== */
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    /* Room for the sticky header when jumping to an anchor. */
+    scroll-padding-top: 6rem;
+  }
+
+  /* Tells the UA which palette to use for native widgets (scrollbars, form
+     controls, the canvas behind the page) so they match the chosen theme.
+
+     `light` is the fallback when `data-theme` is absent (JavaScript disabled):
+     without the attribute the `dark:` variant never matches, so declaring
+     `light` here keeps the UA widgets consistent with what is actually drawn. */
+  html,
+  html[data-theme='light'] {
+    color-scheme: light;
+  }
+
+  html[data-theme='dark'] {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-paper text-ink antialiased dark:bg-midnight dark:text-slate-200;
+  }
+
+  /* Neo-Brutalism reads as "printed", so selection gets a flat, loud fill. */
+  ::selection {
+    @apply bg-iris text-white;
+  }
+
+  /* A visible, chunky focus ring — the brutalist outline doubles as the a11y cue. */
+  :focus-visible {
+    outline: 3px solid var(--color-iris);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Thin, tinted scrollbar; the default one fights the glass panels. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--color-iris) 45%, transparent) transparent;
+  }
 }
 
-body {
-  @apply bg-white text-slate-800 antialiased dark:bg-slate-950 dark:text-slate-200;
+/* ============================================================================
+   Motion safety
+   ----------------------------------------------------------------------------
+   Entrance animations start at `opacity: 0` with `fill-mode: both`. If a visitor
+   asks for reduced motion we must not merely speed them up — we must drop the
+   animation entirely so the element falls back to its visible base style.
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
 
-/* Make Tina's rich-text output behave well inside the prose container. */
+/* ============================================================================
+   STANDING PROJECT RULE: mobile gets no motion at all
+   ----------------------------------------------------------------------------
+   Not a preference and not a temporary measure — do not "add a little motion
+   back for small screens" later.
+
+   Rationale, measured rather than assumed: an animated page carries a fixed
+   per-frame cost that exists as long as ANYTHING is animating, independent of
+   how many things animate or which properties they touch
+   (see STYLE-DIRECTIONS.md §7). Three rounds of profiling put the idle desktop
+   cost at ~190-260 ms/s of main thread under a 4x CPU throttle, and the phone
+   viewport — with 6% of the pixels — was only ~30% cheaper. Phones have the
+   least CPU and the most to lose from a permanently animating background, so
+   they get none of it.
+
+   `animation: none` (rather than a 0.001ms duration) is intentional: the
+   entrance utilities use `animation-fill-mode: both` and start at `opacity: 0`,
+   so removing the animation makes them fall back to the visible base style.
+   Shortening the duration would instead freeze them at the first keyframe.
+
+   The JS half of the same rule lives in `MotionProvider` / `useNoMotion()` —
+   this block only covers CSS. Both are needed; neither alone is sufficient.
+   ========================================================================== */
+
+@media (width < 48rem) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ============================================================================
+   Film grain
+   ----------------------------------------------------------------------------
+   A monochrome `feTurbulence` texture, tiled. It sits inside the backdrop (behind
+   the content and behind the frosted panels), not on top of the page, for two
+   reasons:
+
+     - text never gets noise over it, which would cost legibility for nothing;
+     - a full-viewport overlay with `mix-blend-mode` would force a blend pass over
+       the animating shapes on every frame, and the perf work in §7 showed that
+       per-frame compositing is exactly where this page's cost lives. Plain
+       opacity is a cheap composite instead.
+
+   `feColorMatrix type="saturate" values="0"` desaturates the noise, which
+   feTurbulence otherwise emits as coloured static.
+   ========================================================================== */
+
+@layer components {
+  .grain-overlay {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 160px 160px;
+  }
+}
+
+/* ============================================================================
+   Print
+   ----------------------------------------------------------------------------
+   The on-screen design is deliberately heavy: a fixed animated colour backdrop,
+   hard offset shadows, frosted panels, and two colour themes. Almost none of that
+   survives contact with paper, and some of it actively breaks:
+
+     - the backdrop is `position: fixed` at `-z-10`, so a naive print dumps a
+       full-bleed colour block over every page;
+     - `--shadow-brutal-*` is a hard offset, i.e. a solid slab of ink;
+     - `dark:` styling is driven by a `data-theme` attribute on <html>, so a
+       visitor printing in dark mode would otherwise get pale text on white.
+
+   Elements that are pure chrome are hidden with Tailwind's `print:hidden` on the
+   components themselves (Backdrop, header, footer, reading-progress bar). This
+   block handles the flattening.
+   ========================================================================== */
+
+@media print {
+  @page {
+    margin: 18mm 16mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  /* Flatten BOTH themes to black on white. The wildcard is heavy-handed on
+     purpose: it is the only way to neutralise attribute-driven `dark:` utilities
+     without duplicating every one of them for print. */
+  body * {
+    color: #000 !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+  }
+
+  a {
+    text-decoration: underline;
+  }
+
+  /* Body copy is the only thing worth printing; show where its links went. */
+  .prose a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.85em;
+    word-break: break-all;
+  }
+
+  /* Never split a self-contained block across a page boundary. */
+  figure,
+  pre,
+  aside,
+  table,
+  blockquote,
+  img {
+    break-inside: avoid;
+  }
+
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+}
+
+/* ============================================================================
+   Typography (Tailwind Typography plugin)
+   ----------------------------------------------------------------------------
+   `prose` defaults to warm grey "editorial" styling; the theme wants hard
+   outlines, flat accent fills and very heavy headings instead.
+   ========================================================================== */
+
 .prose :where(pre):not(:where([class~='not-prose'] *)) {
-  @apply rounded-lg;
+  @apply rounded-none border-2 border-ink/80 bg-transparent p-0 dark:border-chalk/25;
+}
+
+/* Blockquotes become a flat accent slab rather than a thin left rule. */
+.prose :where(blockquote):not(:where([class~='not-prose'] *)) {
+  @apply rounded-2xl border-2 border-ink/85 bg-gradient-to-br from-white/80 to-white/40 px-5 py-1 font-medium shadow-brutal-sm backdrop-blur-md not-italic dark:border-chalk/25 dark:from-white/5 dark:to-white/0 dark:shadow-chalk-sm;
+}
+
+.prose :where(blockquote p:first-of-type)::before,
+.prose :where(blockquote p:last-of-type)::after {
+  content: '';
+}
+
+/* Inline code: a highlighter-pen chip. */
+.prose :where(code):not(:where(pre code, [class~='not-prose'] *)) {
+  @apply rounded-md border border-ink/15 bg-sun/35 px-1.5 py-0.5 font-medium text-ink dark:border-chalk/15 dark:bg-sun/20 dark:text-slate-100;
+}
+
+.prose :where(code):not(:where(pre code, [class~='not-prose'] *))::before,
+.prose :where(code):not(:where(pre code, [class~='not-prose'] *))::after {
+  content: '';
+}
+
+/* Ordered lists get a Neo-Brutalist counter badge instead of the browser's
+   default marker. `list-style: none` + a `::before` counter is the only way to
+   style the number itself — `::marker` cannot take a background or border.
+
+   A nested <ol> restarts the counter at 1, which matches how the default marker
+   behaves and avoids surprising "3.1.4"-style numbering in prose. */
+.prose :where(ol):not(:where([class~='not-prose'] *)) {
+  counter-reset: prose-ol;
+  list-style: none;
+  padding-left: 0;
+}
+
+.prose :where(ol > li):not(:where([class~='not-prose'] *)) {
+  counter-increment: prose-ol;
+  position: relative;
+  padding-left: 2.6rem;
+}
+
+.prose :where(ol > li):not(:where([class~='not-prose'] *))::before {
+  content: counter(prose-ol);
+  position: absolute;
+  top: 0.15em;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 2px solid var(--color-ink);
+  border-radius: 0.55rem;
+  background: color-mix(in oklab, var(--color-iris) 14%, transparent);
+  color: var(--color-iris-text);
+  font-size: 0.8rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+[data-theme='dark'] .prose :where(ol > li)::before {
+  border-color: var(--color-chalk);
+  background: color-mix(in oklab, var(--color-iris) 26%, transparent);
+  color: #a5b4fc;
+}
+
+/* Headings carry the brutalist underline directly, so no extra markup is needed. */
+.prose :where(h2):not(:where([class~='not-prose'] *)) {
+  @apply border-b-2 border-ink/15 pb-2 tracking-tight dark:border-chalk/15;
+}
+
+.prose :where(img):not(:where([class~='not-prose'] *)) {
+  @apply rounded-2xl border-2 border-ink/85 dark:border-chalk/25;
+}
+
+.prose :where(hr):not(:where([class~='not-prose'] *)) {
+  @apply h-0.5 border-0 bg-ink/20 dark:bg-chalk/20;
+}
+
+/* Tables: ruled grid with a tinted header, matching the brutalist cards. */
+.prose :where(thead th):not(:where([class~='not-prose'] *)) {
+  @apply border-b-2 border-ink/70 bg-iris/10 dark:border-chalk/30 dark:bg-iris/15;
+}
+
+.prose :where(tbody td, tfoot td):not(:where([class~='not-prose'] *)) {
+  @apply border-b border-ink/15 dark:border-chalk/15;
+}
+
+/* The wrapping glass panel already provides the outer border, so the table's
+   own `border-2` frame would double up. */
+.prose :where(table):not(:where([class~='not-prose'] *)) {
+  @apply border-0;
 }

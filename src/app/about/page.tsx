@@ -38,8 +38,10 @@ export default async function AboutPage() {
   if (!page) notFound();
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-12">
-      <div className="prose prose-slate max-w-none dark:prose-invert">
+    // Unframed, matching the article page: frames mark widgets, not page-level
+    // prose. See STYLE-DIRECTIONS.md D5.
+    <main className="relative z-10 mx-auto max-w-3xl px-4 py-14 sm:py-16">
+      <div className="prose prose-slate max-w-none animate-rise dark:prose-invert prose-headings:font-black prose-headings:tracking-tight prose-h1:border-b-0 prose-strong:font-black prose-li:marker:text-iris">
         <Body content={page.body} />
       </div>
     </main>
