@@ -63,4 +63,12 @@ if (validate.status !== 0) {
 // 3. Build the site against the local API.
 console.log('\n→ next build (against the local content API)\n');
 const next = run('npx', ['next', 'build']);
-process.exit(next.status ?? 1);
+if (next.status !== 0) process.exit(next.status ?? 1);
+
+// 4. Post-build assertions. `--require-bundles` because here the client bundles ARE expected:
+//    locally a missing bundle set means the check silently skipped itself, not that the CI
+//    filesystem pruned them. `npm run build` intentionally omits the flag for that reason.
+console.log('\n→ runtime independence + route contract\n');
+const runtime = run('node', ['scripts/runtime-independence-smoke.mjs', '--require-bundles']);
+const routes = run('node', ['scripts/route-contract-smoke.mjs']);
+process.exit(runtime.status !== 0 ? (runtime.status ?? 1) : (routes.status ?? 1));
